@@ -1,0 +1,7 @@
+# Artefatos gerados pelo flex/bison e pela compilacao
+build/
+compilador
+*.o
+lex.yy.c
+*.tab.c
+*.tab.h
