@@ -5,3 +5,19 @@ compilador
 lex.yy.c
 *.tab.c
 *.tab.h
+
+# OpenCode - ignorar tudo exceto work/
+.opencode/*
+!.opencode/work/
+!.opencode/work/**
+.opencode/node_modules/
+AGENTS.md
+.vscode
+
+# Logs
+logs/
+*.log
+
+# Build artifacts
+bin/
+obj/
