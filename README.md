@@ -1,6 +1,41 @@
 ## Introdução
 Projeto da disciplina Compiladores 1 (Engenharia de Software, UnB), desenvolvido com Flex e Bison.
 
+**Nome oficial da linguagem:** [SimC](docs/linguagem-simc.md)
+
+## Pré-requisitos e Setup (WSL/Ubuntu)
+
+### Versões Testadas
+
+| Ferramenta | Versão |
+|------------|--------|
+| Flex | 2.6.4 |
+| Bison | 3.8.2 |
+| GCC | 13.3.0 |
+| Make | 4.3 |
+
+### Instalação
+
+Para compilar e executar o projeto no ambiente canônico (WSL/Ubuntu), instale as dependências necessárias executando os seguintes comandos:
+
+```bash
+sudo apt update
+sudo apt install flex bison build-essential
+```
+
+### Build e Teste
+
+```bash
+# Compilar o compilador
+make
+
+# Rodar os golden tests
+make test
+
+# Limpar artefatos gerados
+make clean
+```
+
 ## Padrões do Repositório
 
 ### 1. Nomenclatura de Branches
@@ -34,3 +69,7 @@ Siga este passo a passo para cada nova edição:
 5. `git commit -m "[PREFIXO] descrição curta"`
 6. `git push origin [NOME_DA_SUA_BRANCH]`
 7. Abra o Pull Request no site do GitHub.
+
+## Nota
+
+- O professor `sergioaafreitas` precisa ser adicionado como colaborador no repositório (ação pelo dono `renanpr7`).
