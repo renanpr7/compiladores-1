@@ -13,13 +13,13 @@ extern int yylex(void);
 
 %token KW_INT
 %token KW_FLOAT
+%token KW_STRING
 %token KW_RETURN
 %token KW_IF
 %token KW_ELSE
 %token KW_WHILE
 %token KW_FOR
 %token KW_PRINT
-%token KW_SCAN
 
 %expect 0
 

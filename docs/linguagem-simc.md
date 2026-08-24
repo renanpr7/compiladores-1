@@ -18,10 +18,10 @@
 | 6 | `KW_WHILE` | Palavra reservada: loop while | `while` |
 | 7 | `KW_FOR` | Palavra reservada: loop for | `for` |
 | 8 | `KW_PRINT` | Palavra reservada: saída na tela | `print` |
-| 9 | `KW_SCAN` | Palavra reservada: entrada do usuário | `scan` |
+| 9 | `KW_STRING` | Palavra reservada: tipo string | `string` |
 | 10 | `IDENT` | Identificador (letra seguida de letras/dígitos/_ ) | `minha_var`, `x`, `_cont` |
-| 11 | `NUMBER_INT` | Literal numérico inteiro | `42`, `0`, `-7` |
-| 12 | `NUMBER_FLOAT` | Literal numérico com ponto decimal | `3.14`, `0.5`, `-1.0` |
+| 11 | `NUMBER_INT` | Literal numérico inteiro | `42`, `0`, `123` |
+| 12 | `NUMBER_FLOAT` | Literal numérico com ponto decimal | `3.14`, `0.5`, `1.0` |
 | 13 | `STRING_LITERAL` | Literal de string entre aspas duplas | `"hello world"` |
 | 14 | `OP_ASSIGN` | Operador de atribuição | `=` |
 | 15 | `OP_PLUS` | Operador de soma | `+` |
@@ -50,8 +50,8 @@
 ### 2.1 Regras dos Tokens
 
 - **IDENT**: Começa com letra (a-z, A-Z) ou `_`, seguido de letras, dígitos ou `_`. Não pode ser palavra reservada.
-- **NUMBER_INT**: Sequência de dígitos (0-9), opcionalmente com sinal +/-.
-- **NUMBER_FLOAT**: Dois inteiros separados por `.`, opcionalmente com sinal.
+- **NUMBER_INT**: Sequência de dígitos (0-9). O sinal (+/-) é tratado como operador unário.
+- **NUMBER_FLOAT**: Dois inteiros separados por `.`. O sinal (+/-) é tratado como operador unário.
 - **STRING_LITERAL**: Texto entre aspas duplas. Suporta escape: `\"` para aspa, `\\` para barra, `\n` para nova linha.
 - **Comentários**: Removidos pelo lexer (não geram tokens).
   - `//` — do `//` até o fim da linha.
