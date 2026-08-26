@@ -46,6 +46,8 @@
 | 34 | `COMMA` | Vírgula | `,` |
 | 35 | `COMMENT_SINGLE` | Comentário de linha (`//`) | `// isso é um comentário` |
 | 36 | `COMMENT_MULTI` | Comentário de bloco (`/* */`) | `/* comentário */` |
+| 37 | `LBRACKET` | Colchete de abertura | `[` |
+| 38 | `RBRACKET` | Colchete de fechamento | `]` |
 
 ### 2.1 Regras dos Tokens
 
@@ -56,6 +58,10 @@
 - **Comentários**: Removidos pelo lexer (não geram tokens).
   - `//` — do `//` até o fim da linha.
   - `/* ... */` — pode ser multi-linha.
+  - Comentários aninhados não são suportados.
+
+Os tokens `KW_STRING`, `KW_FOR`, `KW_RETURN`, `OP_AND`, `OP_OR`, `LBRACKET` e
+`RBRACKET` são reconhecidos pelo lexer, embora não sejam consumidos pela gramática v1.
 
 ## 3. Gramática BNF v1.0
 
