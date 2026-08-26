@@ -1,0 +1,9 @@
+erro: caractere inválido '$' na linha 1, coluna 1
+erro: caractere inválido '@' na linha 1, coluna 3
+erro: número malformado '1.' na linha 1, coluna 5
+erro: número malformado '1e3' na linha 1, coluna 8
+erro: identificador inválido '42abc' na linha 1, coluna 12
+1:18 IDENT "ok"
+erro: string não fechada na linha 2, coluna 1
+erro: comentário não fechado na linha 3, coluna 1
+5:1 EOF

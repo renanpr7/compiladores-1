@@ -1,0 +1,7 @@
+int _temp = 42;
+float valor = 3.14;
+string texto = "ola \"mundo\"\\\n\t";
+if (a <= b && !c || d != e >= f < g > h) { for [ return, print % - + * / == ]; }
+// comentário ignorado
+/* comentário
+   de bloco */ while else

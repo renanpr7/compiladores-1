@@ -1,0 +1,6 @@
+1:1 KW_PRINT "print"
+1:6 LPAREN "("
+1:7 STRING_LITERAL "hello"
+1:14 RPAREN ")"
+1:15 SEMICOLON ";"
+2:1 EOF

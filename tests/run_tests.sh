@@ -31,8 +31,12 @@ run_test() {
         return
     fi
 
-    # Gera saida real
-    actual=$("$COMPILADOR" < "$simc_file" 2>&1) || true
+    # Gera saída real. Os testes do lexer usam o modo de dump de tokens.
+    if [[ "$simc_file" == "$SCRIPT_DIR/lexer/"* ]]; then
+        actual=$("$COMPILADOR" -t < "$simc_file" 2>&1) || true
+    else
+        actual=$("$COMPILADOR" < "$simc_file" 2>&1) || true
+    fi
     expected=$(cat "$expected_file")
 
     if [ "$actual" = "$expected" ]; then
