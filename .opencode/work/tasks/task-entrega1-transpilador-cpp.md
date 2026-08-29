@@ -1,4 +1,4 @@
-# Task: task-entrega1-transpilador-cpp — Entrega 1: Scanner e Parser do Transpilador C++ → SimC
+# Task: task-entrega1-compilador-cpp — Entrega 1: Scanner e Parser do Compilador C++ → SimC
 
 ## Status: PLANNING
 
@@ -7,7 +7,7 @@
 - **Type:** feature + refactor
 - **Scope:** full-stack (docs, gestão, lexer, parser, testes)
 - **Priority:** high
-- **Source:** Pivot para Transpilador C++ → SimC
+- **Source:** Pivot para Compilador C++ → SimC
 - **Entrega:** **v1.0 — "MVP: Scanner e Parser C++"**
 - **Equipe:** 3 pessoas
 
@@ -15,7 +15,7 @@
 
 ## Problem Statement
 
-O projeto sofreu um **pivô estratégico**: abandonamos a compilação SimC → C++ (complexidade insustentável de mapear para OO) e adotamos a direção inversa — um **Transpilador de C++ (subconjunto imperativo) para SimC**.
+O projeto sofreu um **pivô estratégico**: abandonamos a compilação SimC → C++ (complexidade insustentável de mapear para OO) e adotamos a direção inversa — um **Compilador de C++ (subconjunto imperativo) para SimC**.
 
 **Estado atual do repositório:**
 - Arquivos base existem mas estão **praticamente vazios** (lexer.l ignora tudo, parser.y sem regras reais)
@@ -125,7 +125,7 @@ programa C++ (subconjunto imperativo)
 | D8 | **`do while` e `switch`** | NÃO suportados no subset. Documentar como "fora do subset". |
 | D9 | **Código de erro fail-fast** | Erro de **compilação** (não semântico). Semântico implica análise de tipos, que é Entrega 2. |
 | D10 | **Escopo de variáveis** | v1 NÃO valida declaração antes de uso (validação sintática pura). Documentar como limitação. |
-| D11 | **Arrays** | NÃO suportados no subset v1. |
+| D11 | **Arrays** | Arrays básicos suportados: declaração (`int arr[10];`) e acesso por índice (`arr[0] = 10;`). Não suportado: inicialização com literais, arrays como parâmetros, multidimensionais. |
 | D12 | **Ponteiros e referências** | NÃO suportados no subset. Bloqueados no parser. |
 
 ---
@@ -136,7 +136,7 @@ programa C++ (subconjunto imperativo)
 
 - [ ] **T1.1** [CLEAN] Deletar todas as issues abertas no GitHub usando `gh issue delete` — limpar quadro para nova direção
 - [ ] **T1.2** [CLEAN] Deletar/ajustar releases antigas no GitHub
-- [ ] **T1.3** [DOC] Atualizar `README.md` com nova direção (Transpilador C++ → SimC), comandos e exemplos
+- [ ] **T1.3** [DOC] Atualizar `README.md` com nova direção (Compilador C++ → SimC), comandos e exemplos
 - [ ] **T1.4** [DOC] Atualizar `PROJECT_CONTEXT.md` §1 (Overview) e §3 (Architecture) para refletir o pivô
 
 #### Bloco B — Documentação da Linguagem
@@ -218,6 +218,7 @@ decl_funcao      : tipo IDENT LPAREN lista_param RPAREN bloco
 
 decl_var         : tipo lista_id SEMI
                  | tipo lista_id ASSIGN expressao SEMI
+                 | tipo IDENT LBRACKET NUMBER_INT RBRACKET SEMI   /* declaração de array */
 
 tipo             : INT | FLOAT | STRING | VOID
 
@@ -246,6 +247,7 @@ comando          : decl_var
                  | bloco
 
 atribuicao       : IDENT ASSIGN expressao SEMI
+                 | IDENT LBRACKET expressao RBRACKET ASSIGN expressao SEMI   /* acesso array */
 
 cmd_if           : IF LPAREN expressao RPAREN comando
                  | IF LPAREN expressao RPAREN comando ELSE comando
@@ -264,6 +266,7 @@ expr_cout        : expressao
                  | expr_cout LSHIFT ENDL
 
 cmd_cin          : CIN RSHIFT IDENT SEMI
+                 | CIN RSHIFT IDENT LBRACKET expressao RBRACKET SEMI   /* cin array */
                  | cmd_cin RSHIFT IDENT
 
 expressao        : expr_or
@@ -298,6 +301,7 @@ expr_unario      : MINUS expr_unario
                  | primario
 
 primario         : IDENT
+                 | IDENT LBRACKET expressao RBRACKET   /* acesso array */
                  | NUMBER_INT
                  | NUMBER_FLOAT
                  | STRING_LITERAL
@@ -386,6 +390,7 @@ primario         : IDENT
   - Expressões com precedência: `a + b * 2`, `(a + b) * 2`, `-a * b`, `!a`
   - Funções: `int soma(int a, int b) { return a + b; }`
   - Múltiplas funções
+  - Arrays: `int arr[10];`, `arr[0] = 10;`, `int x = arr[0];`
 
 - [ ] **T6.5** [TEST] `tests/parser/erros/` — **programas inválidos**:
   - Falta `;`: `int a = 10`
@@ -395,7 +400,8 @@ primario         : IDENT
   - Uso de `class`, `new`, `template` (fail-fast)
   - Ponteiros: `int *p;`
   - Referências: `int &r = a;`
-  - Arrays: `int arr[10];`
+  - Arrays multidimensionais: `int arr[10][5];`
+  - Arrays com inicialização: `int arr[3] = {1, 2, 3};`
   - Ternário: `a = b ? c : d;`
   - `do while`, `switch`
   - Arquivo com 3 erros → 3 mensagens (recuperação)
@@ -529,5 +535,5 @@ primario         : IDENT
 ---
 
 _Created by @plan-maker_
-_Last updated: 27/08/2026_
-_Revision: Correções de gramática, ambiguidade, e decisões técnicas (D1-D12)_
+_Last updated: 28/08/2026_
+_Revision: Correções de terminologia (transpilador → compilador), arrays básicos (D11), e gramática BNF atualizada_
