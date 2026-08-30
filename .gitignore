@@ -2,16 +2,14 @@
 build/
 compilador
 *.o
-lex.yy.c
-*.tab.c
-*.tab.h
+src/lex.yy.c
+src/*.tab.c
+src/*.tab.h
 
-# OpenCode - ignorar tudo exceto work/
-.opencode/*
-!.opencode/work/
-!.opencode/work/**
-.opencode/node_modules/
+# Arquivos de ferramentas de IA - nao versionar
+.opencode/
 AGENTS.md
+CLAUDE.md
 .vscode
 
 # Logs

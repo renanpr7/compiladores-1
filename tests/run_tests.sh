@@ -1,6 +1,6 @@
 #!/bin/bash
-# Golden test runner para SimC
-# Compara saida real vs .expected para cada .simc
+# Golden test runner
+# Compara saida real vs .expected para cada .cpp
 # Exit 0 se todos passam, exit 1 se qualquer falha
 
 set -e
@@ -19,9 +19,9 @@ GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
 run_test() {
-    local simc_file="$1"
-    local expected_file="${simc_file%.simc}.expected"
-    local test_name=$(basename "$simc_file" .simc)
+    local cpp_file="$1"
+    local expected_file="${cpp_file%.cpp}.expected"
+    local test_name=$(basename "$cpp_file" .cpp)
 
     TOTAL=$((TOTAL + 1))
 
@@ -32,7 +32,7 @@ run_test() {
     fi
 
     # Gera saida real
-    actual=$("$COMPILADOR" < "$simc_file" 2>&1) || true
+    actual=$("$COMPILADOR" < "$cpp_file" 2>&1) || true
     expected=$(cat "$expected_file")
 
     if [ "$actual" = "$expected" ]; then
@@ -48,21 +48,21 @@ run_test() {
     fi
 }
 
-echo "=== Golden Tests SimC ==="
+echo "=== Golden Tests ==="
 echo ""
 
 # Rodar testes do lexer
-for f in "$SCRIPT_DIR/lexer/"*.simc; do
+for f in "$SCRIPT_DIR/lexer/"*.cpp; do
     [ -f "$f" ] && run_test "$f"
 done
 
 # Rodar testes de aceitacao do parser
-for f in "$SCRIPT_DIR/parser/aceita/"*.simc; do
+for f in "$SCRIPT_DIR/parser/aceita/"*.cpp; do
     [ -f "$f" ] && run_test "$f"
 done
 
 # Rodar testes de erro do parser
-for f in "$SCRIPT_DIR/parser/erros/"*.simc; do
+for f in "$SCRIPT_DIR/parser/erros/"*.cpp; do
     [ -f "$f" ] && run_test "$f"
 done
 
