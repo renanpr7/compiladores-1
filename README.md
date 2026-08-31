@@ -99,7 +99,7 @@ Os arquivos que o Flex e o Bison geram (`lex.yy.c`, `parser.tab.c`, `parser.tab.
 |---|---------|--------|
 | 1 | O subconjunto exclui orientação a objetos, mas inclui o que C++ tem e C não | Classes e herança ficam de fora. Sobrecarga, referências e parâmetros padrão entram: são onde o compilador traduz de verdade, em vez de copiar a entrada. |
 | 2 | A representação interna é uma AST | As fases de semântica, código intermediário e otimização precisam de uma estrutura para percorrer. |
-| 3 | Entre a AST e a saída existe código de três endereços (TAC) | É onde a otimização acontece; emitir C direto da AST não deixaria nada para otimizar. Segue a convenção do material da disciplina — temporários nomeados `t0`, `t1`, `t2`. |
+| 3 | Haverá uma fase de código de três endereços (TAC) | É a representação intermediária clássica e o tema da semana 08 da disciplina, com temporários `t0`, `t1`, `t2`. **Em aberto até a Sprint 5:** se o C final é emitido a partir do TAC ou da AST — e se a otimização roda sobre o TAC ou sobre a árvore, como faz a semana 09. |
 | 4 | `<<` e `>>` só valem em `cout`/`cin` | Tratados como tokens próprios, nunca como operadores de expressão — evita ambiguidade na gramática. |
 | 5 | O Lexer não rejeita construções de OO | Flex identifica tokens, Bison verifica a estrutura. `class` vira o token `CLASS` e o parser recusa. |
 | 6 | Linhas iniciadas por `#` são descartadas | O compilador emite o `#include <stdio.h>` de que a saída precisa. |

@@ -213,6 +213,10 @@ int main() {
 
 Saída:
 
+> A forma exata do C emitido — se preserva as expressões como abaixo ou se sai achatada em
+> temporários, vindo do TAC — é decidida na Sprint 5. O que já está definido é a **tradução**:
+> `maior_ii`, `int*` com `&`, `printf`. Esse exemplo mostra a tradução, não o formato final.
+
 ```c
 #include <stdio.h>
 
