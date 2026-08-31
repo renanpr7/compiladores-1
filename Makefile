@@ -1,30 +1,26 @@
-# Compilador SimC - Makefile
+# Compilador C++ (subconjunto) -> C
 # Pipeline: bison -d -> flex -> gcc -std=c99 -Wall -Wextra
 
-CC = gcc
-CFLAGS = -std=c99 -Wall -Wextra -D_DEFAULT_SOURCE
-BISON = bison
-FLEX = flex
-
-# Artefatos gerados
-PARSER_TAB_C = parser.tab.c
-PARSER_TAB_H = parser.tab.h
-LEX_YY_C = lex.yy.c
-TARGET = compilador
+CC      = gcc
+CFLAGS  = -std=c99 -Wall -Wextra -D_DEFAULT_SOURCE
+SRC     = src
+TARGET  = compilador
 
 all: $(TARGET)
 
-$(TARGET): src/main.c $(LEX_YY_C) $(PARSER_TAB_C)
-	$(CC) $(CFLAGS) -o $@ src/main.c $(LEX_YY_C) $(PARSER_TAB_C)
+$(TARGET): $(SRC)/main.c $(SRC)/lex.yy.c $(SRC)/parser.tab.c
+	$(CC) $(CFLAGS) -I$(SRC) -o $@ $^
 
-$(LEX_YY_C): lexer/lexer.l $(PARSER_TAB_H)
-	$(FLEX) lexer/lexer.l
+# Flex gera o analisador lexico; precisa dos tokens que o Bison define
+$(SRC)/lex.yy.c: $(SRC)/lexer.l $(SRC)/parser.tab.h
+	flex -o $@ $(SRC)/lexer.l
 
-$(PARSER_TAB_C) $(PARSER_TAB_H): parser/parser.y
-	$(BISON) -d -o $(PARSER_TAB_C) parser/parser.y
+# Bison gera o analisador sintatico (.c) e a lista de tokens (.h)
+$(SRC)/parser.tab.c $(SRC)/parser.tab.h: $(SRC)/parser.y
+	bison -d -o $(SRC)/parser.tab.c $(SRC)/parser.y
 
 clean:
-	rm -f $(TARGET) $(LEX_YY_C) $(PARSER_TAB_C) $(PARSER_TAB_H) *.o
+	rm -f $(TARGET) $(SRC)/lex.yy.c $(SRC)/parser.tab.c $(SRC)/parser.tab.h
 
 test: $(TARGET)
 	@bash tests/run_tests.sh
