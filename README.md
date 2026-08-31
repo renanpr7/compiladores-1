@@ -114,14 +114,17 @@ O trabalho é acompanhado pelas [issues](https://github.com/renanpr7/compiladore
 organizadas em [milestones](https://github.com/renanpr7/compiladores-1/milestones) por sprint.
 Criamos issues de uma sprint por vez, em vez de planejar o semestre inteiro de antemão.
 
-| Sprint | Período | Foco |
-|--------|---------|------|
-| 1 | até 07/09 | Analisador léxico |
-| 2 | 08/09 a 21/09 | Analisador sintático — **P1 em 28-30/09** |
-| 3 | 22/09 a 11/10 | AST e tabela de símbolos |
-| 4 | 12/10 a 02/11 | Tabela de símbolos, escopo, tipos e resolução de sobrecarga |
-| 5 | 05/11 a 15/11 | Código de três endereços, otimização e geração de C — **P2 em 09-11/11** |
-| 6 | 16/11 a 02/12 | Integração e entrevista final |
+| Sprint | Período | Foco | Marco |
+|--------|---------|------|-------|
+| 1 | até 07/09 | Analisador léxico | |
+| 2 | 08/09 a 21/09 | Analisador sintático | **Formulário P1 até 23/09** · apresentação 28 ou 30/09 |
+| 3 | 22/09 a 11/10 | AST | |
+| 4 | 12/10 a 02/11 | Tabela de símbolos, escopo, tipos, sobrecarga | **Formulário P2 até 04/11** · apresentação 09 ou 11/11 |
+| 5 | 05/11 a 15/11 | Código de três endereços, otimização e geração de C | |
+| 6 | 16/11 a 02/12 | Integração e ajustes | Entrevista final 30/11 ou 02/12 |
+
+O que é avaliado no P1 e no P2 é o que está pronto quando o **formulário** vence, não na data da
+apresentação. O formulário é enviado só pelo líder da equipe; não enviar zera a nota daquele marco.
 
 ## Convenções
 
