@@ -6,17 +6,8 @@ Flex e Bison.
 O compilador lê um **subconjunto imperativo de C++** (sem orientação a objetos) e gera **código C**
 equivalente. A saída é C de verdade: compila com `gcc` e executa.
 
-Antes de emitir o C, o compilador quebra as expressões em código de três endereços (TAC) —
-uma instrução por operação, com temporários `t0`, `t1`, … — que é onde as otimizações acontecem:
-
 ```
-a = b + c * 2;      →      t0 = c * 2
-                           t1 = b + t0
-                           a  = t1
-```
-
-```
-C++ (subconjunto)  →  Flex  →  Bison  →  AST  →  código de três endereços (TAC)  →  C
+C++ (subconjunto)  →  Flex  →  Bison  →  AST  →  C
 ```
 
 ```bash
@@ -24,9 +15,9 @@ C++ (subconjunto)  →  Flex  →  Bison  →  AST  →  código de três endere
 gcc programa.c -o programa && ./programa
 ```
 
-O que muda na tradução são poucas construções — `cout`, `cin`, `string` e os `#include`. O resto do
-subconjunto já é C válido e passa direto. O trabalho está no pipeline, não na distância entre as
-duas linguagens. Detalhes em [docs/linguagem.md](docs/linguagem.md).
+O subconjunto inclui de propósito construções que **só existem em C++** — sobrecarga de funções,
+referências e parâmetros com valor padrão. Nenhuma tem equivalente direto em C, então o compilador
+precisa traduzir de verdade. Detalhes em [docs/linguagem.md](docs/linguagem.md).
 
 > **Estado atual:** Entrega 1 em andamento. O lexer e o parser ainda são esqueletos — não
 > reconhecem tokens nem validam gramática. Acompanhe pelas
