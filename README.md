@@ -6,8 +6,17 @@ Flex e Bison.
 O compilador lê um **subconjunto imperativo de C++** (sem orientação a objetos) e gera **código C**
 equivalente. A saída é C de verdade: compila com `gcc` e executa.
 
+Antes de emitir o C, o compilador quebra as expressões em código de três endereços (TAC) —
+uma instrução por operação, com temporários `t0`, `t1`, … — que é onde as otimizações acontecem:
+
 ```
-C++ (subconjunto)  →  Flex  →  Bison  →  AST  →  código de três endereços  →  C
+a = b + c * 2;      →      t0 = c * 2
+                           t1 = b + t0
+                           a  = t1
+```
+
+```
+C++ (subconjunto)  →  Flex  →  Bison  →  AST  →  código de três endereços (TAC)  →  C
 ```
 
 ```bash
@@ -99,7 +108,7 @@ Os arquivos que o Flex e o Bison geram (`lex.yy.c`, `parser.tab.c`, `parser.tab.
 |---|---------|--------|
 | 1 | O subconjunto exclui orientação a objetos, mas inclui o que C++ tem e C não | Classes e herança ficam de fora. Sobrecarga, referências e parâmetros padrão entram: são onde o compilador traduz de verdade, em vez de copiar a entrada. |
 | 2 | A representação interna é uma AST | As fases de semântica, código intermediário e otimização precisam de uma estrutura para percorrer. |
-| 3 | Entre a AST e a saída existe código de três endereços | É onde a otimização acontece; emitir C direto da AST não deixaria nada para otimizar. |
+| 3 | Entre a AST e a saída existe código de três endereços (TAC) | É onde a otimização acontece; emitir C direto da AST não deixaria nada para otimizar. Segue a convenção do material da disciplina — temporários nomeados `t0`, `t1`, `t2`. |
 | 4 | `<<` e `>>` só valem em `cout`/`cin` | Tratados como tokens próprios, nunca como operadores de expressão — evita ambiguidade na gramática. |
 | 5 | O Lexer não rejeita construções de OO | Flex identifica tokens, Bison verifica a estrutura. `class` vira o token `CLASS` e o parser recusa. |
 | 6 | Linhas iniciadas por `#` são descartadas | O compilador emite o `#include <stdio.h>` de que a saída precisa. |
@@ -120,7 +129,7 @@ Criamos issues de uma sprint por vez, em vez de planejar o semestre inteiro de a
 | 2 | 08/09 a 21/09 | Analisador sintático | **Formulário P1 até 23/09** · apresentação 28 ou 30/09 |
 | 3 | 22/09 a 11/10 | AST | |
 | 4 | 12/10 a 02/11 | Tabela de símbolos, escopo, tipos, sobrecarga | **Formulário P2 até 04/11** · apresentação 09 ou 11/11 |
-| 5 | 05/11 a 15/11 | Código de três endereços, otimização e geração de C | |
+| 5 | 05/11 a 15/11 | TAC, otimização (*constant folding*) e geração de C | |
 | 6 | 16/11 a 02/12 | Integração e ajustes | Entrevista final 30/11 ou 02/12 |
 
 O que é avaliado no P1 e no P2 é o que está pronto quando o **formulário** vence, não na data da
