@@ -1,0 +1,4 @@
+Erro lexico: numero malformado '1.' na linha 1, coluna 1
+Erro lexico: numero malformado '1.2.3' na linha 1, coluna 4
+Erro lexico: numero malformado '42abc' na linha 1, coluna 10
+2:1 EOF

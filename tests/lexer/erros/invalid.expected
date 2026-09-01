@@ -1,0 +1,8 @@
+1:1 INT "int"
+1:5 IDENT "x"
+1:7 ASSIGN "="
+1:9 NUM_INT "1"
+Erro lexico: caractere invalido '@' na linha 1, coluna 11
+1:13 NUM_INT "2"
+1:14 SEMI ";"
+2:1 EOF
