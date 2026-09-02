@@ -7,7 +7,7 @@ src/*.tab.c
 src/*.tab.h
 
 # Arquivos de ferramentas de IA - nao versionar
-.opencode/
+.opencode
 AGENTS.md
 CLAUDE.md
 .vscode
