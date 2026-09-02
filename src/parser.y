@@ -81,8 +81,13 @@ tipo_variavel:
 ;
 
 declaracao_variavel:
-    tipo_variavel IDENT declarador_sufixo declaradores_rest SEMI
+    tipo_variavel lista_declaradores SEMI
   | CONST tipo_variavel const_declaradores SEMI
+;
+
+lista_declaradores:
+    declarador
+  | lista_declaradores COMMA declarador
 ;
 
 declarador:
@@ -90,22 +95,6 @@ declarador:
   | IDENT ASSIGN expressao
   | IDENT LBRACKET expressao RBRACKET
   | IDENT LBRACKET expressao RBRACKET LBRACKET expressao RBRACKET
-    {
-        yyerror("array de duas dimensoes nao suportado");
-        YYABORT;
-    }
-;
-
-declaradores_rest:
-    %empty
-  | COMMA declarador declaradores_rest
-;
-
-declarador_sufixo:
-    %empty
-  | ASSIGN expressao
-  | LBRACKET expressao RBRACKET
-  | LBRACKET expressao RBRACKET LBRACKET expressao RBRACKET
     {
         yyerror("array de duas dimensoes nao suportado");
         YYABORT;
