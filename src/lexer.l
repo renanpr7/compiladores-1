@@ -1,5 +1,4 @@
 %{
-#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -73,7 +72,7 @@ static void report_lexical_error(const char *detail, int line, int column) {
     } while (0);
 %}
 
-%option yylineno noyywrap noinput nounput
+%option noyywrap noinput nounput
 %x STRING_STATE COMMENT_STATE
 
 %%
@@ -100,16 +99,20 @@ std::                           { }
 <STRING_STATE>\"                 {
     append_string(yytext, yyleng);
     BEGIN(INITIAL);
-    yylval.string_value = string_buffer;
-    lexer_lexeme = string_buffer;
-    yylloc.first_line = string_line;
-    yylloc.first_column = string_column;
+    yylval.string_value = strdup(string_buffer);
+    free(string_buffer);
     string_buffer = NULL;
     string_capacity = string_length = 0;
+    lexer_lexeme = yylval.string_value;
+    yylloc.first_line = string_line;
+    yylloc.first_column = string_column;
     return STRING_LIT;
 }
 <STRING_STATE>\n                 {
     report_lexical_error("string nao fechada", string_line, string_column);
+    free(string_buffer);
+    string_buffer = NULL;
+    string_capacity = string_length = 0;
     BEGIN(INITIAL);
 }
 <STRING_STATE><<EOF>>             {
