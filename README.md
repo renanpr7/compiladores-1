@@ -106,7 +106,7 @@ não são versionados.
 |-------|------|
 | Líder — envia os formulários P1 e P2 | *a definir* |
 | Membros | ArthurDevWorks, Brun00000000, ItaloSamP, LeonardoLopesJr, renanpr7 |
-| Número da equipe | *a confirmar* |
+| Número da equipe | 6 |
 
 O número decide a data da apresentação, e a ordem se inverte entre P1 e P2:
 
