@@ -154,7 +154,39 @@ comando:
     declaracao_variavel
   | RETURN SEMI
   | RETURN expressao SEMI
+  | cmd_cout
+  | cmd_cin
   | expressao SEMI
+;
+
+cmd_cout:
+    COUT lista_cout SEMI
+;
+
+lista_cout:
+    LSHIFT alvo_cout
+  | lista_cout LSHIFT alvo_cout
+;
+
+alvo_cout:
+    STRING_LIT
+  | ENDL
+  | IDENT
+  | IDENT LBRACKET expressao RBRACKET
+;
+
+cmd_cin:
+    CIN lista_cin SEMI
+;
+
+lista_cin:
+    RSHIFT alvo_cin
+  | lista_cin RSHIFT alvo_cin
+;
+
+alvo_cin:
+    IDENT
+  | IDENT LBRACKET expressao RBRACKET
 ;
 
 expressao:
