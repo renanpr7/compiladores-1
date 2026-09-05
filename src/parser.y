@@ -1,9 +1,27 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+static int erros_compilacao = 0;
+#define MAX_ERROS 10
 
 void yyerror(const char *s);
 extern int yylex(void);
+
+static void erro_oo(const char *token, int linha, int coluna) {
+    if (erros_compilacao >= MAX_ERROS) return;
+    fprintf(stderr, "Erro de compilacao: construcao OO nao suportada '%s' na linha %d, coluna %d\n",
+            token, linha, coluna);
+    erros_compilacao++;
+}
+
+static void erro_fora_escopo(const char *token, int linha, int coluna) {
+    if (erros_compilacao >= MAX_ERROS) return;
+    fprintf(stderr, "Erro de compilacao: construcao fora do escopo '%s' na linha %d, coluna %d\n",
+            token, linha, coluna);
+    erros_compilacao++;
+}
 %}
 
 %union {
@@ -40,7 +58,7 @@ extern int yylex(void);
 
 %start programa
 %locations
-%expect 0
+%expect 1
 
 %type <expression_category> expressao primario
 
@@ -71,6 +89,8 @@ decl:
     declaracao_variavel
   | tipo_variavel IDENT LPAREN params RPAREN bloco
   | VOID IDENT LPAREN params RPAREN bloco
+  | erro_oo
+  | erro_fora_escopo
 ;
 
 tipo_variavel:
@@ -80,9 +100,13 @@ tipo_variavel:
   | STRING
 ;
 
+decl_var_base:
+    tipo_variavel lista_declaradores
+  | CONST tipo_variavel const_declaradores
+;
+
 declaracao_variavel:
-    tipo_variavel lista_declaradores SEMI
-  | CONST tipo_variavel const_declaradores SEMI
+    decl_var_base SEMI
 ;
 
 lista_declaradores:
@@ -152,11 +176,21 @@ comandos:
 
 comando:
     declaracao_variavel
+  | bloco
   | RETURN SEMI
   | RETURN expressao SEMI
   | cmd_cout
   | cmd_cin
+  | cmd_if
+  | cmd_while
+  | cmd_do_while
+  | cmd_for
+  | BREAK SEMI
+  | CONTINUE SEMI
+  | cmd_inc_dec
   | expressao SEMI
+  | erro_oo
+  | erro_fora_escopo
 ;
 
 cmd_cout:
@@ -187,6 +221,71 @@ lista_cin:
 alvo_cin:
     IDENT
   | IDENT LBRACKET expressao RBRACKET
+;
+
+cmd_if:
+    IF LPAREN expressao RPAREN comando
+  | IF LPAREN expressao RPAREN comando ELSE comando
+;
+
+cmd_while:
+    WHILE LPAREN expressao RPAREN comando
+;
+
+cmd_do_while:
+    DO comando WHILE LPAREN expressao RPAREN SEMI
+;
+
+cmd_for:
+    FOR LPAREN for_init SEMI for_cond SEMI for_passo RPAREN comando
+;
+
+for_init:
+    %empty
+  | decl_var_base
+  | expressao
+;
+
+for_cond:
+    %empty
+  | expressao
+;
+
+for_passo:
+    %empty
+  | expressao
+  | primario INC
+  | primario DEC
+;
+
+cmd_inc_dec:
+    primario INC SEMI
+  | primario DEC SEMI
+;
+
+erro_oo:
+    CLASS   { erro_oo("class",    @1.first_line, @1.first_column); YYABORT; }
+  | NEW     { erro_oo("new",      @1.first_line, @1.first_column); YYABORT; }
+  | DELETE  { erro_oo("delete",   @1.first_line, @1.first_column); YYABORT; }
+  | TEMPLATE  { erro_oo("template", @1.first_line, @1.first_column); YYABORT; }
+  | VIRTUAL { erro_oo("virtual",  @1.first_line, @1.first_column); YYABORT; }
+  | OVERRIDE { erro_oo("override", @1.first_line, @1.first_column); YYABORT; }
+  | PUBLIC  { erro_oo("public",   @1.first_line, @1.first_column); YYABORT; }
+  | PRIVATE { erro_oo("private",  @1.first_line, @1.first_column); YYABORT; }
+  | PROTECTED { erro_oo("protected", @1.first_line, @1.first_column); YYABORT; }
+  | NAMESPACE { erro_oo("namespace", @1.first_line, @1.first_column); YYABORT; }
+  | USING   { erro_oo("using",    @1.first_line, @1.first_column); YYABORT; }
+  | THIS    { erro_oo("this",     @1.first_line, @1.first_column); YYABORT; }
+  | NULLPTR { erro_oo("nullptr",  @1.first_line, @1.first_column); YYABORT; }
+  | FRIEND  { erro_oo("friend",   @1.first_line, @1.first_column); YYABORT; }
+  | OPERATOR { erro_oo("operator", @1.first_line, @1.first_column); YYABORT; }
+;
+
+erro_fora_escopo:
+    STRUCT  { erro_fora_escopo("struct",  @1.first_line, @1.first_column); YYABORT; }
+  | SWITCH  { erro_fora_escopo("switch",  @1.first_line, @1.first_column); YYABORT; }
+  | CASE    { erro_fora_escopo("case",    @1.first_line, @1.first_column); YYABORT; }
+  | DEFAULT { erro_fora_escopo("default", @1.first_line, @1.first_column); YYABORT; }
 ;
 
 expressao:
@@ -281,10 +380,6 @@ expressao:
      { yyerror("incremento/decremento nao permitido dentro de expressao"); YYERROR; }
   | DEC expressao %prec NOT
      { yyerror("incremento/decremento nao permitido dentro de expressao"); YYERROR; }
-  | primario INC
-      { yyerror("incremento/decremento nao permitido dentro de expressao"); YYERROR; }
-  | primario DEC
-      { yyerror("incremento/decremento nao permitido dentro de expressao"); YYERROR; }
   | primario
       { $$ = $1; }
 ;
