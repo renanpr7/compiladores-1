@@ -73,7 +73,8 @@ Toda issue entrega os próprios testes. `make test` verde é critério de aceite
 src/
   lexer.l       regras do Flex: texto vira tokens
   parser.y      gramática do Bison: valida a estrutura e monta a AST
-  ast.c ast.h   a árvore e as funções que a percorrem
+  tipos.h       o nó da AST
+  ast.c ast.h   construtores, impressão e liberação da árvore
   main.c        interface de linha de comando
 tests/
   run_tests.sh  executa os golden tests de todas as fases
