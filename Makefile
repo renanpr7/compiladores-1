@@ -8,7 +8,7 @@ TARGET  = compilador
 
 all: $(TARGET)
 
-$(TARGET): $(SRC)/main.c $(SRC)/lex.yy.c $(SRC)/parser.tab.c $(SRC)/ast.c $(SRC)/ast.h $(SRC)/tipos.h
+$(TARGET): $(SRC)/main.c $(SRC)/lex.yy.c $(SRC)/parser.tab.c $(SRC)/ast.c $(SRC)/ast.h $(SRC)/tipos.h $(SRC)/diagnostics.h
 	$(CC) $(CFLAGS) -I$(SRC) -o $@ $(filter %.c,$^)
 
 # Flex gera o analisador lexico; precisa dos tokens que o Bison define
@@ -24,5 +24,6 @@ clean:
 
 test: $(TARGET)
 	@bash tests/run_tests.sh
+	@bash tests/cli/run_cli_tests.sh
 
 .PHONY: all clean test
