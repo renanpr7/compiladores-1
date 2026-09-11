@@ -8,8 +8,8 @@ TARGET  = compilador
 
 all: $(TARGET)
 
-$(TARGET): $(SRC)/main.c $(SRC)/lex.yy.c $(SRC)/parser.tab.c
-	$(CC) $(CFLAGS) -I$(SRC) -o $@ $^
+$(TARGET): $(SRC)/main.c $(SRC)/lex.yy.c $(SRC)/parser.tab.c $(SRC)/ast.c $(SRC)/ast.h $(SRC)/tipos.h
+	$(CC) $(CFLAGS) -I$(SRC) -o $@ $(filter %.c,$^)
 
 # Flex gera o analisador lexico; precisa dos tokens que o Bison define
 $(SRC)/lex.yy.c: $(SRC)/lexer.l $(SRC)/parser.tab.h
