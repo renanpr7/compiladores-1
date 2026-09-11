@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include "diagnostics.h"
 
 void yyerror(const char *s);
 extern int yylex(void);
@@ -317,6 +318,8 @@ lista_argumentos:
 %%
 
 void yyerror(const char *s) {
-    fprintf(stderr, "Erro de sintaxe na linha %d, coluna %d: %s\n",
-            yylloc.first_line, yylloc.first_column, s);
+    if (report_diagnostic()) {
+        fprintf(stderr, "Erro de sintaxe na linha %d, coluna %d: %s\n",
+                yylloc.first_line, yylloc.first_column, s);
+    }
 }

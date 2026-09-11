@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "parser.tab.h"
+#include "diagnostics.h"
 
 int lexer_line = 1;
 int lexer_column = 1;
@@ -57,7 +58,9 @@ static void begin_string(void) {
 }
 
 static void report_lexical_error(const char *detail, int line, int column) {
-    fprintf(stderr, "Erro lexico: %s na linha %d, coluna %d\n", detail, line, column);
+    if (report_diagnostic()) {
+        fprintf(stderr, "Erro lexico: %s na linha %d, coluna %d\n", detail, line, column);
+    }
     ++lexical_errors;
 }
 
