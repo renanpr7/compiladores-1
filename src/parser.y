@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int erros_compilacao = 0;
+int erros_compilacao = 0;
 #define MAX_ERROS 10
 
 void yyerror(const char *s);
@@ -91,6 +91,7 @@ decl:
   | VOID IDENT LPAREN params RPAREN bloco
   | erro_oo
   | erro_fora_escopo
+  | error SEMI
 ;
 
 tipo_variavel:
@@ -119,10 +120,7 @@ declarador:
   | IDENT ASSIGN expressao
   | IDENT LBRACKET expressao RBRACKET
   | IDENT LBRACKET expressao RBRACKET LBRACKET expressao RBRACKET
-    {
-        yyerror("array de duas dimensoes nao suportado");
-        YYABORT;
-    }
+      { yyerror("array de duas dimensoes nao suportado"); YYERROR; }
 ;
 
 const_declaradores:
@@ -191,6 +189,7 @@ comando:
   | expressao SEMI
   | erro_oo
   | erro_fora_escopo
+  | error SEMI
 ;
 
 cmd_cout:
@@ -264,28 +263,28 @@ cmd_inc_dec:
 ;
 
 erro_oo:
-    CLASS   { erro_oo("class",    @1.first_line, @1.first_column); YYABORT; }
-  | NEW     { erro_oo("new",      @1.first_line, @1.first_column); YYABORT; }
-  | DELETE  { erro_oo("delete",   @1.first_line, @1.first_column); YYABORT; }
-  | TEMPLATE  { erro_oo("template", @1.first_line, @1.first_column); YYABORT; }
-  | VIRTUAL { erro_oo("virtual",  @1.first_line, @1.first_column); YYABORT; }
-  | OVERRIDE { erro_oo("override", @1.first_line, @1.first_column); YYABORT; }
-  | PUBLIC  { erro_oo("public",   @1.first_line, @1.first_column); YYABORT; }
-  | PRIVATE { erro_oo("private",  @1.first_line, @1.first_column); YYABORT; }
-  | PROTECTED { erro_oo("protected", @1.first_line, @1.first_column); YYABORT; }
-  | NAMESPACE { erro_oo("namespace", @1.first_line, @1.first_column); YYABORT; }
-  | USING   { erro_oo("using",    @1.first_line, @1.first_column); YYABORT; }
-  | THIS    { erro_oo("this",     @1.first_line, @1.first_column); YYABORT; }
-  | NULLPTR { erro_oo("nullptr",  @1.first_line, @1.first_column); YYABORT; }
-  | FRIEND  { erro_oo("friend",   @1.first_line, @1.first_column); YYABORT; }
-  | OPERATOR { erro_oo("operator", @1.first_line, @1.first_column); YYABORT; }
+    CLASS   { erro_oo("class",    @1.first_line, @1.first_column); }
+  | NEW     { erro_oo("new",      @1.first_line, @1.first_column); }
+  | DELETE  { erro_oo("delete",   @1.first_line, @1.first_column); }
+  | TEMPLATE  { erro_oo("template", @1.first_line, @1.first_column); }
+  | VIRTUAL { erro_oo("virtual",  @1.first_line, @1.first_column); }
+  | OVERRIDE { erro_oo("override", @1.first_line, @1.first_column); }
+  | PUBLIC  { erro_oo("public",   @1.first_line, @1.first_column); }
+  | PRIVATE { erro_oo("private",  @1.first_line, @1.first_column); }
+  | PROTECTED { erro_oo("protected", @1.first_line, @1.first_column); }
+  | NAMESPACE { erro_oo("namespace", @1.first_line, @1.first_column); }
+  | USING   { erro_oo("using",    @1.first_line, @1.first_column); }
+  | THIS    { erro_oo("this",     @1.first_line, @1.first_column); }
+  | NULLPTR { erro_oo("nullptr",  @1.first_line, @1.first_column); }
+  | FRIEND  { erro_oo("friend",   @1.first_line, @1.first_column); }
+  | OPERATOR { erro_oo("operator", @1.first_line, @1.first_column); }
 ;
 
 erro_fora_escopo:
-    STRUCT  { erro_fora_escopo("struct",  @1.first_line, @1.first_column); YYABORT; }
-  | SWITCH  { erro_fora_escopo("switch",  @1.first_line, @1.first_column); YYABORT; }
-  | CASE    { erro_fora_escopo("case",    @1.first_line, @1.first_column); YYABORT; }
-  | DEFAULT { erro_fora_escopo("default", @1.first_line, @1.first_column); YYABORT; }
+    STRUCT  { erro_fora_escopo("struct",  @1.first_line, @1.first_column); }
+  | SWITCH  { erro_fora_escopo("switch",  @1.first_line, @1.first_column); }
+  | CASE    { erro_fora_escopo("case",    @1.first_line, @1.first_column); }
+  | DEFAULT { erro_fora_escopo("default", @1.first_line, @1.first_column); }
 ;
 
 expressao:
@@ -412,6 +411,8 @@ lista_argumentos:
 %%
 
 void yyerror(const char *s) {
+    if (erros_compilacao >= MAX_ERROS) return;
     fprintf(stderr, "Erro de sintaxe na linha %d, coluna %d: %s\n",
             yylloc.first_line, yylloc.first_column, s);
+    erros_compilacao++;
 }

@@ -9,6 +9,7 @@ extern int lexer_line;
 extern int lexer_column;
 extern int lexical_errors;
 extern const char *lexer_lexeme;
+extern int erros_compilacao;
 
 static const char *token_name(int token) {
     switch (token) {
@@ -48,5 +49,5 @@ int main(int argc, char **argv) {
     int tokens = argc > 1 && (!strcmp(argv[1], "-t") || !strcmp(argv[1], "--tokens"));
     if (tokens) return dump_tokens();
     int result = yyparse();
-    return lexical_errors || result != 0 ? 1 : 0;
+    return lexical_errors || result != 0 || erros_compilacao > 0 ? 1 : 0;
 }
