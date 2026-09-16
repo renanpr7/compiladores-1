@@ -18,6 +18,7 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 COMPILADOR="$ROOT_DIR/compilador"
+[ -x "$ROOT_DIR/compilador.exe" ] && COMPILADOR="$ROOT_DIR/compilador.exe"
 
 PASS=0; FAIL=0; TOTAL=0
 RED='\033[0;31m'; GREEN='\033[0;32m'; DIM='\033[2m'; NC='\033[0m'
@@ -41,9 +42,14 @@ run_test() {
     local actual got_exit
     actual=$("$COMPILADOR" $flag < "$cpp_file" 2>&1); got_exit=$?
 
-    if [ "$actual" != "$(cat "$expected_file")" ]; then
+    local expected
+    expected=$(cat "$expected_file")
+    # Compare without caring whether either side uses LF or CRLF.
+    actual=${actual//$'\r'/}
+    expected=${expected//$'\r'/}
+    if [ "$actual" != "$expected" ]; then
         echo -e "${RED}FAIL${NC} $name ${DIM}(saida diferente)${NC}"
-        diff <(cat "$expected_file") <(echo "$actual") | sed 's/^/      /' | head -12
+        diff <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") | sed 's/^/      /' | head -12
         FAIL=$((FAIL + 1)); return
     fi
     if [ "$got_exit" -ne "$want_exit" ]; then

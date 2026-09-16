@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "diagnostics.h"
 
 int erros_compilacao = 0;
 #define MAX_ERROS 10
@@ -11,16 +12,20 @@ extern int yylex(void);
 
 static void erro_oo(const char *token, int linha, int coluna) {
     if (erros_compilacao >= MAX_ERROS) return;
-    fprintf(stderr, "Erro de compilacao: construcao OO nao suportada '%s' na linha %d, coluna %d\n",
-            token, linha, coluna);
     erros_compilacao++;
+    if (report_diagnostic()) {
+        fprintf(stderr, "Erro de compilacao: construcao OO nao suportada '%s' na linha %d, coluna %d\n",
+                token, linha, coluna);
+    }
 }
 
 static void erro_fora_escopo(const char *token, int linha, int coluna) {
     if (erros_compilacao >= MAX_ERROS) return;
-    fprintf(stderr, "Erro de compilacao: construcao fora do escopo '%s' na linha %d, coluna %d\n",
-            token, linha, coluna);
     erros_compilacao++;
+    if (report_diagnostic()) {
+        fprintf(stderr, "Erro de compilacao: construcao fora do escopo '%s' na linha %d, coluna %d\n",
+                token, linha, coluna);
+    }
 }
 %}
 
@@ -412,7 +417,9 @@ lista_argumentos:
 
 void yyerror(const char *s) {
     if (erros_compilacao >= MAX_ERROS) return;
-    fprintf(stderr, "Erro de sintaxe na linha %d, coluna %d: %s\n",
-            yylloc.first_line, yylloc.first_column, s);
     erros_compilacao++;
+    if (report_diagnostic()) {
+        fprintf(stderr, "Erro de sintaxe na linha %d, coluna %d: %s\n",
+                yylloc.first_line, yylloc.first_column, s);
+    }
 }

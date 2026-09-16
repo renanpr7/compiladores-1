@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "parser.tab.h"
+#include "diagnostics.h"
 
 extern int yyparse(void);
 extern int yylex(void);
@@ -10,6 +11,14 @@ extern int lexer_column;
 extern int lexical_errors;
 extern const char *lexer_lexeme;
 extern int erros_compilacao;
+
+int diagnostic_count = 0;
+
+int report_diagnostic(void) {
+    if (diagnostic_count >= MAX_DIAGNOSTICS) return 0;
+    ++diagnostic_count;
+    return 1;
+}
 
 static const char *token_name(int token) {
     switch (token) {
@@ -45,9 +54,40 @@ static int dump_tokens(void) {
     return lexical_errors ? 1 : 0;
 }
 
+static void print_help(FILE *stream) {
+    fprintf(stream,
+            "Uso: compilador [opcao]\n"
+            "\n"
+            "Opcoes:\n"
+            "  -t, --tokens  imprime os tokens lidos\n"
+            "  -h, --help    mostra esta ajuda\n"
+            "  -a            nao implementada\n"
+            "  -i            nao implementada\n"
+            "\n"
+            "Exemplos:\n"
+            "  compilador < programa.cpp\n"
+            "  compilador --tokens < programa.cpp\n");
+}
+
 int main(int argc, char **argv) {
-    int tokens = argc > 1 && (!strcmp(argv[1], "-t") || !strcmp(argv[1], "--tokens"));
-    if (tokens) return dump_tokens();
-    int result = yyparse();
-    return lexical_errors || result != 0 || erros_compilacao > 0 ? 1 : 0;
+    int result;
+
+    if (argc == 2 && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help"))) {
+        print_help(stdout);
+        return 0;
+    }
+    if (argc == 2 && (!strcmp(argv[1], "-t") || !strcmp(argv[1], "--tokens"))) {
+        return dump_tokens() == 0 && !lexical_errors ? 0 : 1;
+    }
+    if (argc != 1) {
+        print_help(stderr);
+        return 2;
+    }
+
+    result = yyparse();
+    if (lexical_errors || result != 0 || erros_compilacao > 0) {
+        return 1;
+    }
+    puts("OK");
+    return 0;
 }
