@@ -10,6 +10,7 @@ extern int lexer_line;
 extern int lexer_column;
 extern int lexical_errors;
 extern const char *lexer_lexeme;
+extern int erros_compilacao;
 
 int diagnostic_count = 0;
 
@@ -84,7 +85,7 @@ int main(int argc, char **argv) {
     }
 
     result = yyparse();
-    if (lexical_errors || result != 0) {
+    if (lexical_errors || result != 0 || erros_compilacao > 0) {
         return 1;
     }
     puts("OK");
