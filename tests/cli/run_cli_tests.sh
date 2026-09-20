@@ -37,10 +37,15 @@ status=$?
 check "long token flag" 0 "$status" \
     "cmp -s \"$TMP_DIR/tokens.out\" \"$TMP_DIR/tokens-long.out\""
 
+"$COMPILADOR" --ast < "$TMP_DIR/valid.cpp" > "$TMP_DIR/ast.out" 2> "$TMP_DIR/ast.err"
+status=$?
+check "ast flag" 0 "$status" \
+    "grep -q '^PROGRAMA' \"$TMP_DIR/ast.out\" && grep -q '^  DECLARACAO int' \"$TMP_DIR/ast.out\" && [ ! -s \"$TMP_DIR/ast.err\" ]"
+
 "$COMPILADOR" --help > "$TMP_DIR/help.out" 2> "$TMP_DIR/help.err"
 status=$?
 check "help" 0 "$status" \
-    "grep -q 'Uso:' \"$TMP_DIR/help.out\" && grep -q -- '-a.*nao implementada' \"$TMP_DIR/help.out\" && grep -q -- '-i.*nao implementada' \"$TMP_DIR/help.out\""
+    "grep -q 'Uso:' \"$TMP_DIR/help.out\" && grep -q -- '-a, --ast' \"$TMP_DIR/help.out\" && grep -q -- '-i.*nao implementada' \"$TMP_DIR/help.out\""
 
 "$COMPILADOR" --not-an-option > "$TMP_DIR/unknown.out" 2> "$TMP_DIR/unknown.err"
 status=$?

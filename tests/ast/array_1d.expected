@@ -1,0 +1,5 @@
+PROGRAMA
+  DECLARACAO int
+    DECLARADOR valores
+      (vazio)
+      NUM 3

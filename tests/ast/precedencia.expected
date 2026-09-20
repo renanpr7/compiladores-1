@@ -1,0 +1,8 @@
+PROGRAMA
+  DECLARACAO int
+    DECLARADOR x
+      OP_BINARIO +
+        ID a
+        OP_BINARIO *
+          ID b
+          NUM 2

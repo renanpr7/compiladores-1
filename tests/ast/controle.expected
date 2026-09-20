@@ -1,0 +1,32 @@
+PROGRAMA
+  FUNCAO int f
+    (vazio)
+    BLOCO
+      IF
+        BOOL true
+        ATRIBUICAO =
+          ID x
+          NUM 1
+        ATRIBUICAO =
+          ID x
+          NUM 2
+      WHILE
+        ID x
+        INC_DEC --
+          ID x
+      DO_WHILE
+        INC_DEC ++
+          ID x
+        ID x
+      FOR
+        ATRIBUICAO =
+          ID x
+          NUM 0
+        OP_BINARIO <
+          ID x
+          NUM 3
+        INC_DEC ++
+          ID x
+        BREAK
+      CONTINUE
+      RETURN
