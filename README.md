@@ -18,8 +18,13 @@ O subconjunto inclui de propósito sobrecarga de funções, referências e parâ
 Nenhuma tem equivalente direto em C, então o compilador traduz em vez de copiar. O que é aceito e
 como cada construção é traduzida está em [docs/linguagem.md](docs/linguagem.md).
 
-> **Estado atual:** Sprint 1. O lexer e o parser são esqueletos — não reconhecem tokens nem validam
-> gramática. O andamento está nas [issues](https://github.com/renanpr7/compiladores-1/issues).
+> **Estado atual:** front-end completo. O lexer reconhece todo o subconjunto com posição de linha e
+> coluna, o parser valida a gramática e monta a AST, e `./compilador -a` imprime a árvore. São **84
+> testes automatizados** passando (76 golden tests e 8 de linha de comando).
+>
+> Falta o back-end: análise semântica na Sprint 4, TAC e geração de C na Sprint 5. Até lá o modo
+> padrão apenas valida a entrada e responde `OK`. O andamento está nas
+> [issues](https://github.com/renanpr7/compiladores-1/issues).
 
 ## Ambiente
 
@@ -43,9 +48,12 @@ O compilador lê da entrada padrão e escreve na saída padrão:
 ```bash
 ./compilador -t < programa.cpp    # dump de tokens
 ./compilador -a < programa.cpp    # dump da AST
-./compilador -i < programa.cpp    # dump do código de três endereços
-./compilador    < programa.cpp    # gera o C
+./compilador -h                   # ajuda
+./compilador    < programa.cpp    # valida a entrada
 ```
+
+Ainda não implementados: `-i`, que vai imprimir o código de três endereços, e a geração de C no
+modo padrão — os dois entram nas Sprints 4 e 5.
 
 ## Testes
 
@@ -61,6 +69,7 @@ casos dentro de uma pasta `erros/` devem terminar com 1, os demais com 0.
 | `semantica/` | escopo, tipos, declaração antes do uso | `./compilador` |
 | `codegen/` | o C gerado | `./compilador` |
 | `execucao/` | o C gerado compila e roda | `gcc` + execução |
+| `cli/` | flags, códigos de saída e limite de diagnósticos | `tests/cli/run_cli_tests.sh` |
 
 `execucao/` é a suíte que prova o compilador de ponta a ponta: pega o C emitido, compila com `gcc`
 e compara o que o programa imprime.
@@ -78,6 +87,7 @@ src/
   main.c        interface de linha de comando
 tests/
   run_tests.sh  executa os golden tests de todas as fases
+  cli/          testes da interface de linha de comando
 docs/
   linguagem.md  o C++ que aceitamos e o C que emitimos
 Makefile
@@ -105,7 +115,7 @@ não são versionados.
 
 | Papel | Quem |
 |-------|------|
-| Líder — envia os formulários P1 e P2 | *a definir* |
+| Líder — envia os formulários P1 e P2 | renanpr7 |
 | Membros | ArthurDevWorks, Brun00000000, ItaloSamP, LeonardoLopesJr, renanpr7 |
 | Número da equipe | 6 |
 
