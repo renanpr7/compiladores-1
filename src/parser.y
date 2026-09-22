@@ -232,11 +232,8 @@ lista_cout:
 ;
 
 alvo_cout:
-    STRING_LIT { $$ = criarNoString($1, @1.first_line, @1.first_column); free($1); }
-  | ENDL { $$ = criarNoEndl(@1.first_line, @1.first_column); }
-  | IDENT { $$ = criarNoId($1, @1.first_line, @1.first_column); free($1); }
-  | IDENT LBRACKET expressao RBRACKET
-      { $$ = criarNoIndice($1, $3, @1.first_line, @1.first_column); free($1); }
+    ENDL { $$ = criarNoEndl(@1.first_line, @1.first_column); }
+  | expressao { $$ = $1; }
 ;
 
 cmd_cin:
