@@ -1,0 +1,8 @@
+PROGRAMA
+  FUNCAO int f
+    PARAMETRO int& x
+    PARAMETRO int y
+      NUM 2
+    BLOCO
+      RETURN
+        ID x

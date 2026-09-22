@@ -1,0 +1,1 @@
+int valores[3];

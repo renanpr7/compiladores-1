@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "parser.tab.h"
+#include "ast.h"
 #include "diagnostics.h"
 
 extern int yyparse(void);
@@ -11,6 +12,7 @@ extern int lexer_column;
 extern int lexical_errors;
 extern const char *lexer_lexeme;
 extern int erros_compilacao;
+extern NoAST *ast_raiz;
 
 int diagnostic_count = 0;
 
@@ -61,12 +63,13 @@ static void print_help(FILE *stream) {
             "Opcoes:\n"
             "  -t, --tokens  imprime os tokens lidos\n"
             "  -h, --help    mostra esta ajuda\n"
-            "  -a            nao implementada\n"
+            "  -a, --ast     imprime a arvore sintatica abstrata\n"
             "  -i            nao implementada\n"
             "\n"
             "Exemplos:\n"
             "  compilador < programa.cpp\n"
-            "  compilador --tokens < programa.cpp\n");
+            "  compilador --tokens < programa.cpp\n"
+            "  compilador --ast < programa.cpp\n");
 }
 
 int main(int argc, char **argv) {
@@ -79,6 +82,18 @@ int main(int argc, char **argv) {
     if (argc == 2 && (!strcmp(argv[1], "-t") || !strcmp(argv[1], "--tokens"))) {
         return dump_tokens() == 0 && !lexical_errors ? 0 : 1;
     }
+    if (argc == 2 && (!strcmp(argv[1], "-a") || !strcmp(argv[1], "--ast"))) {
+        result = yyparse();
+        if (lexical_errors || result != 0 || erros_compilacao > 0) {
+            liberarAST(ast_raiz);
+            ast_raiz = NULL;
+            return 1;
+        }
+        imprimirAST(ast_raiz);
+        liberarAST(ast_raiz);
+        ast_raiz = NULL;
+        return 0;
+    }
     if (argc != 1) {
         print_help(stderr);
         return 2;
@@ -86,8 +101,12 @@ int main(int argc, char **argv) {
 
     result = yyparse();
     if (lexical_errors || result != 0 || erros_compilacao > 0) {
+        liberarAST(ast_raiz);
+        ast_raiz = NULL;
         return 1;
     }
     puts("OK");
+    liberarAST(ast_raiz);
+    ast_raiz = NULL;
     return 0;
 }
