@@ -1,0 +1,4 @@
+Erro semantico na linha 2, coluna 5: condicao deve ser do tipo bool ou int
+Erro semantico na linha 4, coluna 5: condicao deve ser do tipo bool ou int
+Erro semantico na linha 6, coluna 5: tipo de retorno incompativel com a funcao
+Erro semantico na linha 10, coluna 5: tipo de retorno incompativel com a funcao
