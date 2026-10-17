@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "ast.h"
 #include "tabela.h"
 
 static void erro_memoria_tabela(void) {
@@ -13,6 +14,39 @@ static char *copiar_nome(const char *str) {
     char *copia = strdup(str);
     if (!copia) erro_memoria_tabela();
     return copia;
+}
+
+static char sufixo_tipo(TipoDado t) {
+    switch (t) {
+    case TIPO_INT:    return 'i';
+    case TIPO_FLOAT:  return 'f';
+    case TIPO_BOOL:   return 'b';
+    case TIPO_STRING: return 's';
+    case TIPO_VOID:   return 'v';
+    case TIPO_NENHUM: return 'u';
+    }
+    return 'u';
+}
+
+static char *gerar_nome_mangled(const char *nome, const TipoDado *tipos_param, int num_params) {
+    size_t len_nome = strlen(nome);
+    size_t sufixos = (num_params > 0) ? (size_t)num_params : 1u;
+    size_t total = len_nome + 1u + sufixos + 1u;
+    char *res = calloc(total, sizeof(char));
+    if (!res) erro_memoria_tabela();
+
+    memcpy(res, nome, len_nome);
+    res[len_nome] = '_';
+    if (num_params <= 0) {
+        res[len_nome + 1u] = 'v';
+        res[len_nome + 2u] = '\0';
+    } else {
+        for (int i = 0; i < num_params; ++i) {
+            res[len_nome + 1u + (size_t)i] = sufixo_tipo(tipos_param[i]);
+        }
+        res[len_nome + 1u + (size_t)num_params] = '\0';
+    }
+    return res;
 }
 
 static uint32_t hash_fnv1a(const char *str) {
@@ -27,8 +61,14 @@ static uint32_t hash_fnv1a(const char *str) {
 static void liberar_simbolo(Simbolo *s) {
     if (!s) return;
     free(s->nome);
+    free(s->nome_mangled);
     free(s->tipos_param);
     free(s->ref_params);
+    if (s->valores_padrao) {
+        for (int i = 0; i < s->num_params; ++i)
+            liberarAST(s->valores_padrao[i]);
+    }
+    free(s->valores_padrao);
     free(s);
 }
 
@@ -99,50 +139,73 @@ Simbolo *buscar_simbolo(TabelaSimbolos *t, const char *nome) {
     return NULL;
 }
 
-static int param_compativel(TipoDado esperado, TipoDado recebido) {
-    if (esperado == TIPO_NENHUM || recebido == TIPO_NENHUM) return 1;
-    if (esperado == TIPO_VOID || recebido == TIPO_VOID) return 0;
-    if (esperado == TIPO_STRING || recebido == TIPO_STRING) {
-        return esperado == TIPO_STRING && recebido == TIPO_STRING;
-    }
-    return 1;
-}
-
 Simbolo *buscar_funcao_compativel(TabelaSimbolos *t, const char *nome,
-                                  const TipoDado *tipos_args, int num_args) {
+                                  const TipoDado *tipos_args, int num_args,
+                                  StatusBuscaFuncao *status_out) {
+    if (status_out) *status_out = BUSCA_FUNC_NAO_DECLARADA;
     if (!t || !nome) return NULL;
+
     uint32_t idx = hash_fnv1a(nome);
+    Escopo *escopo_func = NULL;
+    Simbolo *primeira_func = NULL;
 
     for (Escopo *e = t->atual; e != NULL; e = e->pai) {
-        /* Passada 1: casamento exato de tipos */
         for (Simbolo *s = e->buckets[idx]; s != NULL; s = s->proximo) {
-            if (s->categoria == CAT_FUNCAO && strcmp(s->nome, nome) == 0 &&
-                num_args >= s->min_params && num_args <= s->num_params) {
-                int exato = 1;
-                for (int i = 0; i < num_args; ++i) {
-                    if (tipos_args && s->tipos_param[i] != tipos_args[i]) {
-                        exato = 0;
-                        break;
-                    }
+            if (strcmp(s->nome, nome) == 0) {
+                if (s->categoria != CAT_FUNCAO) {
+                    if (status_out) *status_out = BUSCA_FUNC_NAO_DECLARADA;
+                    return NULL;
                 }
-                if (exato) return s;
+                escopo_func = e;
+                primeira_func = s;
+                break;
             }
         }
-        /* Passada 2: casamento compativel por coercao */
-        for (Simbolo *s = e->buckets[idx]; s != NULL; s = s->proximo) {
-            if (s->categoria == CAT_FUNCAO && strcmp(s->nome, nome) == 0 &&
-                num_args >= s->min_params && num_args <= s->num_params) {
-                int compativel = 1;
-                for (int i = 0; i < num_args; ++i) {
-                    if (tipos_args && !param_compativel(s->tipos_param[i], tipos_args[i])) {
-                        compativel = 0;
-                        break;
-                    }
+        if (escopo_func) break;
+    }
+
+    if (!escopo_func || !primeira_func) {
+        if (status_out) *status_out = BUSCA_FUNC_NAO_DECLARADA;
+        return NULL;
+    }
+
+    /* Anti-cascata: se algum argumento teve erro anterior (TIPO_NENHUM), nao reporta novo erro */
+    for (int i = 0; i < num_args; ++i) {
+        if (tipos_args && tipos_args[i] == TIPO_NENHUM) {
+            if (status_out) *status_out = BUSCA_FUNC_OK;
+            return primeira_func;
+        }
+    }
+
+    /* Passada 1: casamento exato de tipos */
+    Simbolo *match_exato = NULL;
+    int count_exato = 0;
+    for (Simbolo *s = escopo_func->buckets[idx]; s != NULL; s = s->proximo) {
+        if (s->categoria == CAT_FUNCAO && strcmp(s->nome, nome) == 0 &&
+            num_args >= s->min_params && num_args <= s->num_params) {
+            int exato = 1;
+            for (int i = 0; i < num_args; ++i) {
+                if (tipos_args && s->tipos_param[i] != tipos_args[i]) {
+                    exato = 0;
+                    break;
                 }
-                if (compativel) return s;
+            }
+            if (exato) {
+                match_exato = s;
+                ++count_exato;
             }
         }
     }
+    if (count_exato == 1) {
+        if (status_out) *status_out = BUSCA_FUNC_OK;
+        return match_exato;
+    }
+    if (count_exato > 1) {
+        if (status_out) *status_out = BUSCA_FUNC_AMBIGUA;
+        return NULL;
+    }
+
+    if (status_out) *status_out = BUSCA_FUNC_SEM_CANDIDATO;
     return NULL;
 }
 
@@ -191,11 +254,13 @@ Simbolo *inserir_funcao(TabelaSimbolos *t, const char *nome, TipoDado retorno,
     }
 
     uint32_t idx = hash_fnv1a(nome);
+    int ja_existe_sobrecarga = 0;
     for (Simbolo *s = t->atual->buckets[idx]; s != NULL; s = s->proximo) {
         if (strcmp(s->nome, nome) == 0) {
             if (s->categoria != CAT_FUNCAO || mesma_assinatura(s, params, num_params)) {
                 return NULL;
             }
+            ja_existe_sobrecarga = 1;
         }
     }
 
@@ -213,12 +278,37 @@ Simbolo *inserir_funcao(TabelaSimbolos *t, const char *nome, TipoDado retorno,
     if (num_params > 0) {
         novo->tipos_param = calloc((size_t)num_params, sizeof(TipoDado));
         novo->ref_params = calloc((size_t)num_params, sizeof(int));
-        if (!novo->tipos_param || !novo->ref_params) erro_memoria_tabela();
+        novo->valores_padrao = calloc((size_t)num_params, sizeof(NoAST *));
+        if (!novo->tipos_param || !novo->ref_params || !novo->valores_padrao)
+            erro_memoria_tabela();
         NoAST *p = params;
         for (int i = 0; i < num_params; ++i) {
             novo->tipos_param[i] = p->tipo_dado;
             novo->ref_params[i] = p->eh_referencia;
+            if (p->filho[0])
+                novo->valores_padrao[i] = clonarExpressaoAST(p->filho[0]);
             p = p->proximo;
+        }
+    }
+
+    novo->nome_mangled = gerar_nome_mangled(novo->nome, novo->tipos_param, num_params);
+
+    if (ja_existe_sobrecarga) {
+        novo->eh_sobrecarregada = 1;
+        for (Simbolo *s = t->atual->buckets[idx]; s != NULL; s = s->proximo) {
+            if (s->categoria == CAT_FUNCAO && strcmp(s->nome, novo->nome) == 0) {
+                if (!s->eh_sobrecarregada) {
+                    s->eh_sobrecarregada = 1;
+                    if (s->no_decl && s->nome_mangled) {
+                        free(s->no_decl->texto);
+                        s->no_decl->texto = copiar_nome(s->nome_mangled);
+                    }
+                }
+            }
+        }
+        if (novo->no_decl && novo->nome_mangled) {
+            free(novo->no_decl->texto);
+            novo->no_decl->texto = copiar_nome(novo->nome_mangled);
         }
     }
 

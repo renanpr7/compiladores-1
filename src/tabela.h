@@ -11,18 +11,28 @@ typedef enum {
     CAT_FUNCAO
 } CategoriaSimbolo;
 
+typedef enum {
+    BUSCA_FUNC_OK,
+    BUSCA_FUNC_NAO_DECLARADA,
+    BUSCA_FUNC_SEM_CANDIDATO,
+    BUSCA_FUNC_AMBIGUA
+} StatusBuscaFuncao;
+
 typedef struct Simbolo {
     char *nome;
+    char *nome_mangled;
     TipoDado tipo;
     CategoriaSimbolo categoria;
     int eh_const;
     int eh_referencia;
     int eh_array;
     int tamanho_array;
+    int eh_sobrecarregada;
     int num_params;
     int min_params;
     TipoDado *tipos_param;
     int *ref_params;
+    NoAST **valores_padrao;
     NoAST *no_decl;
     int linha;
     int coluna;
@@ -48,7 +58,8 @@ void sair_escopo(TabelaSimbolos *t);
 Simbolo *buscar_simbolo_escopo_atual(TabelaSimbolos *t, const char *nome);
 Simbolo *buscar_simbolo(TabelaSimbolos *t, const char *nome);
 Simbolo *buscar_funcao_compativel(TabelaSimbolos *t, const char *nome,
-                                  const TipoDado *tipos_args, int num_args);
+                                  const TipoDado *tipos_args, int num_args,
+                                  StatusBuscaFuncao *status_out);
 
 Simbolo *inserir_simbolo(TabelaSimbolos *t, const char *nome, TipoDado tipo,
                          CategoriaSimbolo categoria, int linha, int coluna);

@@ -1,6 +1,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "semantica.h"
 #include "tabela.h"
 #include "diagnostics.h"
@@ -29,6 +30,17 @@ static int eh_numerico(TipoDado t) {
 
 static int eh_escalar_condicao(TipoDado t) {
     return t == TIPO_INT || t == TIPO_FLOAT || t == TIPO_BOOL;
+}
+
+static char *copiar_texto_semantica(const char *texto) {
+    size_t tamanho = strlen(texto) + 1;
+    char *copia = malloc(tamanho);
+    if (!copia) {
+        fprintf(stderr, "Erro: memoria insuficiente na analise semantica\n");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(copia, texto, tamanho);
+    return copia;
 }
 
 static int tipos_compativeis_atribuicao(TipoDado destino, TipoDado origem) {
@@ -123,6 +135,17 @@ static void analisar_funcao(ContextoSemantico *ctx, NoAST *no) {
         }
     }
 
+    /* Os defaults sao tipados durante a visita acima. A tabela guarda copias
+     * independentes, portanto atualize-as depois dessa visita. */
+    if (f && f->valores_padrao) {
+        int indice = 0;
+        for (NoAST *param = no->filho[0]; param != NULL; param = param->proximo, ++indice) {
+            liberarAST(f->valores_padrao[indice]);
+            f->valores_padrao[indice] = param->filho[0]
+                ? clonarExpressaoAST(param->filho[0]) : NULL;
+        }
+    }
+
     if (no->filho[1]) {
         if (no->filho[1]->tipo == NO_BLOCO) {
             visitar_lista(ctx, no->filho[1]->filho[0]);
@@ -156,17 +179,92 @@ static void analisar_chamada(ContextoSemantico *ctx, NoAST *no) {
         }
     }
 
-    Simbolo *qualquer = buscar_simbolo(ctx->tabela, no->texto);
-    if (!qualquer || qualquer->categoria != CAT_FUNCAO) {
+    StatusBuscaFuncao status = BUSCA_FUNC_NAO_DECLARADA;
+    Simbolo *comp = buscar_funcao_compativel(ctx->tabela, no->texto, tipos_args, num_args, &status);
+
+    switch (status) {
+    case BUSCA_FUNC_NAO_DECLARADA:
         erro_semantico(ctx, no->linha, no->coluna,
                        "funcao '%s' nao declarada", no->texto);
         no->tipo_dado = TIPO_NENHUM;
-    } else {
-        Simbolo *comp = buscar_funcao_compativel(ctx->tabela, no->texto, tipos_args, num_args);
-        no->tipo_dado = comp ? comp->tipo : qualquer->tipo;
+        break;
+    case BUSCA_FUNC_SEM_CANDIDATO:
+        erro_semantico(ctx, no->linha, no->coluna,
+                       "nenhum candidato compativel para chamada de '%s'", no->texto);
+        no->tipo_dado = TIPO_NENHUM;
+        break;
+    case BUSCA_FUNC_AMBIGUA:
+        erro_semantico(ctx, no->linha, no->coluna,
+                       "chamada ambigua para funcao '%s'", no->texto);
+        no->tipo_dado = TIPO_NENHUM;
+        break;
+    case BUSCA_FUNC_OK:
+        if (comp) {
+            no->tipo_dado = comp->tipo;
+            /* Os defaults pertencem a tabela, mas cada chamada recebe donos
+             * proprios. Assim liberar a AST da funcao e da chamada nunca
+             * percorre o mesmo no duas vezes. */
+            for (int i = num_args; i < comp->num_params; ++i) {
+                if (!comp->valores_padrao || !comp->valores_padrao[i]) {
+                    erro_semantico(ctx, no->linha, no->coluna,
+                                   "argumento obrigatorio ausente na chamada de '%s'", no->texto);
+                    no->tipo_dado = TIPO_NENHUM;
+                    break;
+                }
+                NoAST *padrao = clonarExpressaoAST(comp->valores_padrao[i]);
+                no->filho[0] = anexarIrmao(no->filho[0], padrao);
+            }
+            if (comp->eh_sobrecarregada && comp->nome_mangled) {
+                char *copia = copiar_texto_semantica(comp->nome_mangled);
+                free(no->texto);
+                no->texto = copia;
+            }
+        } else {
+            no->tipo_dado = TIPO_NENHUM;
+        }
+        break;
     }
 
     free(tipos_args);
+}
+
+/* A segunda declaracao pode promover uma funcao que ja teve seu corpo
+ * analisado. Nesse caso, chamadas visitadas antes da promocao precisam ser
+ * atualizadas retroativamente para que a AST inteira use o mesmo nome C. */
+static void atualizar_nomes_chamadas(ContextoSemantico *ctx, NoAST *no) {
+    for (NoAST *atual = no; atual != NULL; atual = atual->proximo) {
+        if (atual->tipo == NO_CHAMADA) {
+            int quantidade = 0;
+            for (NoAST *arg = atual->filho[0]; arg != NULL; arg = arg->proximo)
+                ++quantidade;
+
+            TipoDado *tipos = NULL;
+            if (quantidade > 0) {
+                tipos = calloc((size_t)quantidade, sizeof *tipos);
+                if (!tipos) {
+                    fprintf(stderr, "Erro: memoria insuficiente na analise semantica\n");
+                    exit(EXIT_FAILURE);
+                }
+                int i = 0;
+                for (NoAST *arg = atual->filho[0]; arg != NULL; arg = arg->proximo)
+                    tipos[i++] = arg->tipo_dado;
+            }
+
+            StatusBuscaFuncao status = BUSCA_FUNC_NAO_DECLARADA;
+            Simbolo *funcao = buscar_funcao_compativel(ctx->tabela, atual->texto,
+                                                       tipos, quantidade, &status);
+            if (status == BUSCA_FUNC_OK && funcao && funcao->eh_sobrecarregada &&
+                funcao->nome_mangled) {
+                char *nome = copiar_texto_semantica(funcao->nome_mangled);
+                free(atual->texto);
+                atual->texto = nome;
+            }
+            free(tipos);
+        }
+
+        for (int i = 0; i < AST_MAX_FILHOS; ++i)
+            atualizar_nomes_chamadas(ctx, atual->filho[i]);
+    }
 }
 
 static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
@@ -492,6 +590,7 @@ int analisar_semantica(NoAST *raiz) {
     ctx.erros = 0;
 
     visitar_no(&ctx, raiz);
+    atualizar_nomes_chamadas(&ctx, raiz);
 
     liberar_tabela(ctx.tabela);
     return ctx.erros;
