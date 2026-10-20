@@ -1,3 +1,4 @@
+int chamada(int a, float b, string s, bool t, bool u) { return a; }
 int v[10];
 int f(int i) {
     int a = 1;

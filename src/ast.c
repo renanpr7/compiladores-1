@@ -201,6 +201,25 @@ NoAST *anexarIrmao(NoAST *lista, NoAST *novo) {
     return lista;
 }
 
+NoAST *clonarExpressaoAST(const NoAST *origem) {
+    if (!origem) return NULL;
+
+    NoAST *copia = novo_no(origem->tipo, origem->linha, origem->coluna);
+    copia->tipo_dado = origem->tipo_dado;
+    copia->operador = origem->operador;
+    copia->valor_int = origem->valor_int;
+    copia->valor_float = origem->valor_float;
+    copia->eh_const = origem->eh_const;
+    copia->eh_referencia = origem->eh_referencia;
+    copia->eh_parenthesized = origem->eh_parenthesized;
+    if (origem->texto) copia->texto = copiar(origem->texto);
+
+    for (int i = 0; i < AST_MAX_FILHOS; ++i)
+        copia->filho[i] = clonarExpressaoAST(origem->filho[i]);
+    copia->proximo = clonarExpressaoAST(origem->proximo);
+    return copia;
+}
+
 /* Sem default: -Wswitch avisa se um TipoNo novo ficar sem nome. */
 static const char *nome_no(TipoNo tipo) {
     switch (tipo) {

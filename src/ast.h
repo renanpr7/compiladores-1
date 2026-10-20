@@ -72,6 +72,9 @@ NoAST *criarNoString(const char *literal, int linha, int coluna);
 /* Anexa 'novo' ao fim da lista e devolve o inicio. Aceita lista ou novo NULL. */
 NoAST *anexarIrmao(NoAST *lista, NoAST *novo);
 
+/* Cria uma copia profunda de um no e de toda a subarvore abaixo dele. */
+NoAST *clonarExpressaoAST(const NoAST *no);
+
 void imprimirAST(NoAST *raiz);
 void liberarAST(NoAST *raiz);
 

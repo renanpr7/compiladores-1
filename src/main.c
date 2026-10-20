@@ -3,6 +3,7 @@
 #include "parser.tab.h"
 #include "ast.h"
 #include "diagnostics.h"
+#include "semantica.h"
 
 extern int yyparse(void);
 extern int yylex(void);
@@ -101,6 +102,11 @@ int main(int argc, char **argv) {
 
     result = yyparse();
     if (lexical_errors || result != 0 || erros_compilacao > 0) {
+        liberarAST(ast_raiz);
+        ast_raiz = NULL;
+        return 1;
+    }
+    if (analisar_semantica(ast_raiz) > 0) {
         liberarAST(ast_raiz);
         ast_raiz = NULL;
         return 1;
