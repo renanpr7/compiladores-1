@@ -10,6 +10,7 @@ typedef struct {
     TabelaSimbolos *tabela;
     TipoDado retorno_funcao_atual;
     int erros;
+    int profundidade_laco;
 } ContextoSemantico;
 
 static void erro_semantico(ContextoSemantico *ctx, int linha, int coluna, const char *fmt, ...) {
@@ -305,11 +306,15 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
     case NO_WHILE:
         visitar_no(ctx, no->filho[0]);
         validar_condicao(ctx, no, no->filho[0]);
+        ctx->profundidade_laco++;
         visitar_no(ctx, no->filho[1]);
+        ctx->profundidade_laco--;
         break;
 
     case NO_DO_WHILE:
+        ctx->profundidade_laco++;
         visitar_no(ctx, no->filho[0]);
+        ctx->profundidade_laco--;
         visitar_no(ctx, no->filho[1]);
         validar_condicao(ctx, no, no->filho[1]);
         break;
@@ -320,7 +325,9 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
         visitar_no(ctx, no->filho[1]);
         validar_condicao(ctx, no, no->filho[1]);
         visitar_no(ctx, no->filho[2]);
+        ctx->profundidade_laco++;
         visitar_no(ctx, no->filho[3]);
+        ctx->profundidade_laco--;
         sair_escopo(ctx->tabela);
         break;
 
@@ -390,6 +397,11 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
 
     case NO_BREAK:
     case NO_CONTINUE:
+        if (ctx->profundidade_laco == 0)
+            erro_semantico(ctx, no->linha, no->coluna, "'%s' fora de um laco",
+                           no->tipo == NO_BREAK ? "break" : "continue");
+        break;
+
     case NO_ENDL:
         break;
 
@@ -588,6 +600,7 @@ int analisar_semantica(NoAST *raiz) {
     ctx.tabela = criar_tabela();
     ctx.retorno_funcao_atual = TIPO_VOID;
     ctx.erros = 0;
+    ctx.profundidade_laco = 0;
 
     visitar_no(&ctx, raiz);
     atualizar_nomes_chamadas(&ctx, raiz);
