@@ -1,0 +1,7 @@
+#include <stdio.h>
+
+int a = 10;
+float b = 2.5;
+int c = 1;
+const int k = 42;
+int v[5];

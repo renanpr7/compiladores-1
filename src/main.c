@@ -4,6 +4,7 @@
 #include "ast.h"
 #include "diagnostics.h"
 #include "semantica.h"
+#include "codegen.h"
 
 extern int yyparse(void);
 extern int yylex(void);
@@ -111,7 +112,7 @@ int main(int argc, char **argv) {
         ast_raiz = NULL;
         return 1;
     }
-    puts("OK");
+    gerar_codigo(ast_raiz, stdout);
     liberarAST(ast_raiz);
     ast_raiz = NULL;
     return 0;

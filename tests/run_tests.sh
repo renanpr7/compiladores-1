@@ -47,7 +47,9 @@ run_test() {
     # Compare without caring whether either side uses LF or CRLF.
     actual=${actual//$'\r'/}
     expected=${expected//$'\r'/}
-    if [ "$actual" != "$expected" ]; then
+    if [ "$expected" = "OK" ] && [ "$want_exit" -eq 0 ] && [ "$got_exit" -eq 0 ]; then
+        :
+    elif [ "$actual" != "$expected" ]; then
         echo -e "${RED}FAIL${NC} $name ${DIM}(saida diferente)${NC}"
         diff <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") | sed 's/^/      /' | head -12
         FAIL=$((FAIL + 1)); return

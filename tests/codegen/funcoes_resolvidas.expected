@@ -1,0 +1,19 @@
+#include <stdio.h>
+
+int seleciona_i(int valor) {
+    return valor;
+}
+
+float seleciona_f(float valor) {
+    return valor;
+}
+
+int soma(int valor, int incremento) {
+    return (valor + incremento);
+}
+
+int main(void) {
+    int inteiro = seleciona_i(1);
+    float real = seleciona_f(1.5);
+    return (soma(inteiro, 3) + real);
+}
