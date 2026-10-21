@@ -56,6 +56,7 @@ static const char *op_simbolo(Operador op) {
 static void codegen_expressao(ContextoCodegen *ctx, const NoAST *no);
 static void codegen_comando(ContextoCodegen *ctx, const NoAST *no);
 static void codegen_bloco(ContextoCodegen *ctx, const NoAST *no);
+static void codegen_corpo(ContextoCodegen *ctx, const NoAST *no);
 
 static void codegen_expressao(ContextoCodegen *ctx, const NoAST *no) {
     if (!no) return;
@@ -147,8 +148,7 @@ static void codegen_expressao(ContextoCodegen *ctx, const NoAST *no) {
     }
 }
 
-static void codegen_declaracao(ContextoCodegen *ctx, const NoAST *no) {
-    emitir_indent(ctx);
+static void codegen_declaracao_inline(ContextoCodegen *ctx, const NoAST *no) {
     if (no->eh_const) {
         fprintf(ctx->out, "const ");
     }
@@ -169,6 +169,11 @@ static void codegen_declaracao(ContextoCodegen *ctx, const NoAST *no) {
             fprintf(ctx->out, ", ");
         }
     }
+}
+
+static void codegen_declaracao(ContextoCodegen *ctx, const NoAST *no) {
+    emitir_indent(ctx);
+    codegen_declaracao_inline(ctx, no);
     fprintf(ctx->out, ";\n");
 }
 
@@ -266,6 +271,29 @@ static void codegen_bloco(ContextoCodegen *ctx, const NoAST *no) {
     fprintf(ctx->out, "}\n");
 }
 
+static void codegen_corpo(ContextoCodegen *ctx, const NoAST *no) {
+    if (no && no->tipo == NO_BLOCO) {
+        codegen_bloco(ctx, no);
+        return;
+    }
+
+    fprintf(ctx->out, "{\n");
+    ctx->nivel_indent++;
+    codegen_comando(ctx, no);
+    ctx->nivel_indent--;
+    emitir_indent(ctx);
+    fprintf(ctx->out, "}\n");
+}
+
+static void codegen_for_init(ContextoCodegen *ctx, const NoAST *no) {
+    if (!no) return;
+    if (no->tipo == NO_DECLARACAO) {
+        codegen_declaracao_inline(ctx, no);
+    } else {
+        codegen_expressao(ctx, no);
+    }
+}
+
 static void codegen_comando(ContextoCodegen *ctx, const NoAST *no) {
     if (!no) return;
 
@@ -289,6 +317,59 @@ static void codegen_comando(ContextoCodegen *ctx, const NoAST *no) {
         fprintf(ctx->out, ";\n");
         break;
 
+    case NO_IF:
+        emitir_indent(ctx);
+        fprintf(ctx->out, "if (");
+        codegen_expressao(ctx, no->filho[0]);
+        fprintf(ctx->out, ") ");
+        codegen_corpo(ctx, no->filho[1]);
+        if (no->filho[2]) {
+            emitir_indent(ctx);
+            fprintf(ctx->out, "else ");
+            codegen_corpo(ctx, no->filho[2]);
+        }
+        break;
+
+    case NO_WHILE:
+        emitir_indent(ctx);
+        fprintf(ctx->out, "while (");
+        codegen_expressao(ctx, no->filho[0]);
+        fprintf(ctx->out, ") ");
+        codegen_corpo(ctx, no->filho[1]);
+        break;
+
+    case NO_DO_WHILE:
+        emitir_indent(ctx);
+        fprintf(ctx->out, "do ");
+        codegen_corpo(ctx, no->filho[0]);
+        emitir_indent(ctx);
+        fprintf(ctx->out, "while (");
+        codegen_expressao(ctx, no->filho[1]);
+        fprintf(ctx->out, ");\n");
+        break;
+
+    case NO_FOR:
+        emitir_indent(ctx);
+        fprintf(ctx->out, "for (");
+        codegen_for_init(ctx, no->filho[0]);
+        fprintf(ctx->out, "; ");
+        codegen_expressao(ctx, no->filho[1]);
+        fprintf(ctx->out, "; ");
+        codegen_expressao(ctx, no->filho[2]);
+        fprintf(ctx->out, ") ");
+        codegen_corpo(ctx, no->filho[3]);
+        break;
+
+    case NO_BREAK:
+        emitir_indent(ctx);
+        fprintf(ctx->out, "break;\n");
+        break;
+
+    case NO_CONTINUE:
+        emitir_indent(ctx);
+        fprintf(ctx->out, "continue;\n");
+        break;
+
     case NO_COUT:
         codegen_cout(ctx, no);
         break;
@@ -300,6 +381,15 @@ static void codegen_comando(ContextoCodegen *ctx, const NoAST *no) {
     case NO_ATRIBUICAO:
     case NO_CHAMADA:
     case NO_INC_DEC:
+    case NO_OP_BINARIO:
+    case NO_OP_UNARIO:
+    case NO_TERNARIO:
+    case NO_ID:
+    case NO_INDICE:
+    case NO_NUM:
+    case NO_FLOAT:
+    case NO_BOOL:
+    case NO_STRING:
         emitir_indent(ctx);
         codegen_expressao(ctx, no);
         fprintf(ctx->out, ";\n");
