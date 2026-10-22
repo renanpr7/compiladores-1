@@ -9,7 +9,7 @@
 #
 # Fases (o professor pede teste automatizado para cada uma):
 #   lexer/       dump de tokens          ./compilador -t
-#   parser/      validacao sintatica     ./compilador
+#   parser/      validacao sintatica     ./compilador -a
 #   ast/         dump da arvore          ./compilador -a
 #   semantica/   erros de significado    ./compilador
 #   codegen/     codigo C gerado         ./compilador
@@ -103,7 +103,7 @@ suite() {
 
 echo "=== Golden Tests ==="
 suite "Analise lexica"    lexer      -t
-suite "Analise sintatica" parser     ""
+suite "Analise sintatica" parser     "-a"
 suite "AST"               ast        -a
 suite "Analise semantica" semantica  ""
 suite "Geracao de codigo" codegen    ""

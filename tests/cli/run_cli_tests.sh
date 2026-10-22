@@ -64,6 +64,12 @@ status=$?
 check "semantic failure emits no C" 1 "$status" \
     "[ ! -s \"$TMP_DIR/semantic.out\" ] && grep -q 'nao declarado' \"$TMP_DIR/semantic.err\""
 
+printf 'void dobra(int& x) { x = x * 2; }\n' > "$TMP_DIR/reference.cpp"
+"$COMPILADOR" < "$TMP_DIR/reference.cpp" > "$TMP_DIR/reference.out" 2> "$TMP_DIR/reference.err"
+status=$?
+check "reference parameter failure emits no C" 1 "$status" \
+    "[ ! -s \"$TMP_DIR/reference.out\" ] && grep -q 'referencias ainda nao suportadas' \"$TMP_DIR/reference.err\""
+
 printf '@ @ @ @ @ @ @ @ @ @ @ @\n' > "$TMP_DIR/many-errors.cpp"
 "$COMPILADOR" -t < "$TMP_DIR/many-errors.cpp" > "$TMP_DIR/many-errors.out" 2> "$TMP_DIR/many-errors.err"
 status=$?
