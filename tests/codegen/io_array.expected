@@ -1,0 +1,6 @@
+#include <stdio.h>
+
+void ler(void) {
+    int valores[10];
+    scanf("%d", &valores[2]);
+}

@@ -1,0 +1,11 @@
+#include <stdio.h>
+
+int main(void) {
+    int inteiro;
+    float real;
+    int ligado = 1;
+    char* nome = "Ada";
+    scanf("%d%f", &inteiro, &real);
+    printf("%s%d%f%d%s\n", "valores: ", inteiro, real, ligado, nome);
+    return 0;
+}

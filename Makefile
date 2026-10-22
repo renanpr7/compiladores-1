@@ -8,7 +8,7 @@ TARGET  = compilador
 
 all: $(TARGET)
 
-$(TARGET): $(SRC)/main.c $(SRC)/lex.yy.c $(SRC)/parser.tab.c $(SRC)/ast.c $(SRC)/tabela.c $(SRC)/semantica.c $(SRC)/ast.h $(SRC)/tabela.h $(SRC)/semantica.h $(SRC)/tipos.h $(SRC)/diagnostics.h
+$(TARGET): $(SRC)/main.c $(SRC)/lex.yy.c $(SRC)/parser.tab.c $(SRC)/ast.c $(SRC)/tabela.c $(SRC)/semantica.c $(SRC)/codegen.c $(SRC)/ast.h $(SRC)/tabela.h $(SRC)/semantica.h $(SRC)/codegen.h $(SRC)/tipos.h $(SRC)/diagnostics.h
 	$(CC) $(CFLAGS) -I$(SRC) -o $@ $(filter %.c,$^)
 
 # Flex gera o analisador lexico; precisa dos tokens que o Bison define

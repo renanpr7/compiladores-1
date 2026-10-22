@@ -25,7 +25,7 @@ printf 'int x;\n' > "$TMP_DIR/valid.cpp"
 "$COMPILADOR" < "$TMP_DIR/valid.cpp" > "$TMP_DIR/default.out" 2> "$TMP_DIR/default.err"
 status=$?
 check "default success" 0 "$status" \
-    "[ \"\$(tr -d \\"\\r\\" < \"$TMP_DIR/default.out\")\" = OK ] && [ ! -s \"$TMP_DIR/default.err\" ]"
+    "grep -q 'int x;' \"$TMP_DIR/default.out\" && grep -q '<stdio.h>' \"$TMP_DIR/default.out\" && [ ! -s \"$TMP_DIR/default.err\" ]"
 
 "$COMPILADOR" -t < "$TMP_DIR/valid.cpp" > "$TMP_DIR/tokens.out" 2> "$TMP_DIR/tokens.err"
 status=$?
@@ -57,6 +57,18 @@ printf 'int x\n' > "$TMP_DIR/syntax.cpp"
 status=$?
 check "syntax failure" 1 "$status" \
     "[ ! -s \"$TMP_DIR/syntax.out\" ] && grep -q 'Erro de sintaxe' \"$TMP_DIR/syntax.err\""
+
+printf 'int main() { return nao_declarada; }\n' > "$TMP_DIR/semantic.cpp"
+"$COMPILADOR" < "$TMP_DIR/semantic.cpp" > "$TMP_DIR/semantic.out" 2> "$TMP_DIR/semantic.err"
+status=$?
+check "semantic failure emits no C" 1 "$status" \
+    "[ ! -s \"$TMP_DIR/semantic.out\" ] && grep -q 'nao declarado' \"$TMP_DIR/semantic.err\""
+
+printf 'void dobra(int& x) { x = x * 2; }\n' > "$TMP_DIR/reference.cpp"
+"$COMPILADOR" < "$TMP_DIR/reference.cpp" > "$TMP_DIR/reference.out" 2> "$TMP_DIR/reference.err"
+status=$?
+check "reference parameter failure emits no C" 1 "$status" \
+    "[ ! -s \"$TMP_DIR/reference.out\" ] && grep -q 'referencias ainda nao suportadas' \"$TMP_DIR/reference.err\""
 
 printf '@ @ @ @ @ @ @ @ @ @ @ @\n' > "$TMP_DIR/many-errors.cpp"
 "$COMPILADOR" -t < "$TMP_DIR/many-errors.cpp" > "$TMP_DIR/many-errors.out" 2> "$TMP_DIR/many-errors.err"

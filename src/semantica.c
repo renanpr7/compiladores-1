@@ -118,6 +118,10 @@ static void analisar_funcao(ContextoSemantico *ctx, NoAST *no) {
     entrar_escopo(ctx->tabela);
 
     for (NoAST *param = no->filho[0]; param != NULL; param = param->proximo) {
+        if (param->eh_referencia) {
+            erro_semantico(ctx, param->linha, param->coluna,
+                           "referencias ainda nao suportadas");
+        }
         if (param->filho[0]) {
             visitar_no(ctx, param->filho[0]);
             if (!tipos_compativeis_atribuicao(param->tipo_dado, param->filho[0]->tipo_dado)) {

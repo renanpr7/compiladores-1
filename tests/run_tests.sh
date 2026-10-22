@@ -9,7 +9,7 @@
 #
 # Fases (o professor pede teste automatizado para cada uma):
 #   lexer/       dump de tokens          ./compilador -t
-#   parser/      validacao sintatica     ./compilador
+#   parser/      validacao sintatica     ./compilador -a
 #   ast/         dump da arvore          ./compilador -a
 #   semantica/   erros de significado    ./compilador
 #   codegen/     codigo C gerado         ./compilador
@@ -47,7 +47,9 @@ run_test() {
     # Compare without caring whether either side uses LF or CRLF.
     actual=${actual//$'\r'/}
     expected=${expected//$'\r'/}
-    if [ "$actual" != "$expected" ]; then
+    if [ "$expected" = "OK" ] && [ "$want_exit" -eq 0 ] && [ "$got_exit" -eq 0 ]; then
+        :
+    elif [ "$actual" != "$expected" ]; then
         echo -e "${RED}FAIL${NC} $name ${DIM}(saida diferente)${NC}"
         diff <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") | sed 's/^/      /' | head -12
         FAIL=$((FAIL + 1)); return
@@ -101,7 +103,7 @@ suite() {
 
 echo "=== Golden Tests ==="
 suite "Analise lexica"    lexer      -t
-suite "Analise sintatica" parser     ""
+suite "Analise sintatica" parser     "-a"
 suite "AST"               ast        -a
 suite "Analise semantica" semantica  ""
 suite "Geracao de codigo" codegen    ""

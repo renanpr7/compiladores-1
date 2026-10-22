@@ -1,0 +1,15 @@
+#include <stdio.h>
+
+int calcular(int a, int b) {
+    int valor = -((a + b));
+    valor += a;
+    valor -= b;
+    valor *= 2;
+    valor /= 2;
+    int resto = (a % b);
+    int valores[2];
+    valores[0] = resto;
+    valor = ((((a < b) && (a != 0)) || (a == b)) ? (a + (b * 2)) : (a - (b / 2)));
+    a = b = 3;
+    return (!a ? (valor + valores[0]) : 0);
+}
