@@ -4,6 +4,7 @@
 #include "ast.h"
 #include "diagnostics.h"
 #include "semantica.h"
+#include "tac.h"
 #include "codegen.h"
 
 extern int yyparse(void);
@@ -66,12 +67,13 @@ static void print_help(FILE *stream) {
             "  -t, --tokens  imprime os tokens lidos\n"
             "  -h, --help    mostra esta ajuda\n"
             "  -a, --ast     imprime a arvore sintatica abstrata\n"
-            "  -i            nao implementada\n"
+            "  -i, --tac     imprime o codigo intermediario (TAC)\n"
             "\n"
             "Exemplos:\n"
             "  compilador < programa.cpp\n"
             "  compilador --tokens < programa.cpp\n"
-            "  compilador --ast < programa.cpp\n");
+            "  compilador --ast < programa.cpp\n"
+            "  compilador --tac < programa.cpp\n");
 }
 
 int main(int argc, char **argv) {
@@ -92,6 +94,25 @@ int main(int argc, char **argv) {
             return 1;
         }
         imprimirAST(ast_raiz);
+        liberarAST(ast_raiz);
+        ast_raiz = NULL;
+        return 0;
+    }
+    if (argc == 2 && (!strcmp(argv[1], "-i") || !strcmp(argv[1], "--tac"))) {
+        result = yyparse();
+        if (lexical_errors || result != 0 || erros_compilacao > 0) {
+            liberarAST(ast_raiz);
+            ast_raiz = NULL;
+            return 1;
+        }
+        if (analisar_semantica(ast_raiz) > 0) {
+            liberarAST(ast_raiz);
+            ast_raiz = NULL;
+            return 1;
+        }
+        ProgramaTAC *tac = gerar_tac(ast_raiz);
+        imprimir_tac(tac, stdout);
+        liberar_tac(tac);
         liberarAST(ast_raiz);
         ast_raiz = NULL;
         return 0;
