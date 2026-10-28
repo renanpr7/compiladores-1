@@ -42,10 +42,21 @@ status=$?
 check "ast flag" 0 "$status" \
     "grep -q '^PROGRAMA' \"$TMP_DIR/ast.out\" && grep -q '^  DECLARACAO int' \"$TMP_DIR/ast.out\" && [ ! -s \"$TMP_DIR/ast.err\" ]"
 
+printf 'int main() { int a = 1 + 2; return a; }\n' > "$TMP_DIR/tac.cpp"
+"$COMPILADOR" -i < "$TMP_DIR/tac.cpp" > "$TMP_DIR/tac.out" 2> "$TMP_DIR/tac.err"
+status=$?
+check "short tac flag" 0 "$status" \
+    "grep -q '^func main:' \"$TMP_DIR/tac.out\" && grep -q '^    _t1 = 1 + 2' \"$TMP_DIR/tac.out\" && grep -q '^    a = _t1' \"$TMP_DIR/tac.out\" && grep -q '^    return a' \"$TMP_DIR/tac.out\" && grep -q '^endfunc main' \"$TMP_DIR/tac.out\" && [ ! -s \"$TMP_DIR/tac.err\" ]"
+
+"$COMPILADOR" --tac < "$TMP_DIR/tac.cpp" > "$TMP_DIR/tac-long.out" 2> "$TMP_DIR/tac-long.err"
+status=$?
+check "long tac flag" 0 "$status" \
+    "cmp -s \"$TMP_DIR/tac.out\" \"$TMP_DIR/tac-long.out\" && [ ! -s \"$TMP_DIR/tac-long.err\" ]"
+
 "$COMPILADOR" --help > "$TMP_DIR/help.out" 2> "$TMP_DIR/help.err"
 status=$?
 check "help" 0 "$status" \
-    "grep -q 'Uso:' \"$TMP_DIR/help.out\" && grep -q -- '-a, --ast' \"$TMP_DIR/help.out\" && grep -q -- '-i.*nao implementada' \"$TMP_DIR/help.out\""
+    "grep -q 'Uso:' \"$TMP_DIR/help.out\" && grep -q -- '-a, --ast' \"$TMP_DIR/help.out\" && grep -q -- '-i, --tac' \"$TMP_DIR/help.out\""
 
 "$COMPILADOR" --not-an-option > "$TMP_DIR/unknown.out" 2> "$TMP_DIR/unknown.err"
 status=$?
@@ -63,6 +74,11 @@ printf 'int main() { return nao_declarada; }\n' > "$TMP_DIR/semantic.cpp"
 status=$?
 check "semantic failure emits no C" 1 "$status" \
     "[ ! -s \"$TMP_DIR/semantic.out\" ] && grep -q 'nao declarado' \"$TMP_DIR/semantic.err\""
+
+"$COMPILADOR" -i < "$TMP_DIR/semantic.cpp" > "$TMP_DIR/tac-semantic.out" 2> "$TMP_DIR/tac-semantic.err"
+status=$?
+check "semantic failure with -i emits no TAC" 1 "$status" \
+    "[ ! -s \"$TMP_DIR/tac-semantic.out\" ] && grep -q 'nao declarado' \"$TMP_DIR/tac-semantic.err\""
 
 printf 'void dobra(int& x) { x = x * 2; }\n' > "$TMP_DIR/reference.cpp"
 "$COMPILADOR" < "$TMP_DIR/reference.cpp" > "$TMP_DIR/reference.out" 2> "$TMP_DIR/reference.err"

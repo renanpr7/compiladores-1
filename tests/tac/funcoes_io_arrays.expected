@@ -1,0 +1,27 @@
+func maior_ii:
+    _t1 = a + b
+    return _t1
+endfunc maior_ii
+func maior_ff:
+    _t2 = a + b
+    return _t2
+endfunc maior_ff
+func incrementar:
+    _t3 = x + passo
+    return _t3
+endfunc incrementar
+func main:
+    param 5
+    param 1
+    _t4 = call incrementar, 2
+    v[0] = _t4
+    _t5 = v[0]
+    param _t5
+    param 3
+    _t6 = call maior_ii, 2
+    v[1] = _t6
+    _t7 = v[1]
+    print _t7
+    print "\n"
+    return 0
+endfunc main

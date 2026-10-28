@@ -12,6 +12,7 @@
 #   parser/      validacao sintatica     ./compilador -a
 #   ast/         dump da arvore          ./compilador -a
 #   semantica/   erros de significado    ./compilador
+#   tac/         codigo intermediario    ./compilador -i
 #   codegen/     codigo C gerado         ./compilador
 #   execucao/    o C gerado compila e roda com gcc
 
@@ -80,12 +81,17 @@ run_execucao() {
         sed 's/^/      /' "$tmp/gcc.log" | head -8
         FAIL=$((FAIL + 1)); rm -rf "$tmp"; return
     fi
-    if [ "$("$tmp/prog")" = "$(cat "$expected_file")" ]; then
+    local actual_out expected_out
+    actual_out=$("$tmp/prog")
+    expected_out=$(cat "$expected_file")
+    actual_out=${actual_out//$'\r'/}
+    expected_out=${expected_out//$'\r'/}
+    if [ "$actual_out" = "$expected_out" ]; then
         echo -e "${GREEN}PASS${NC} $name ${DIM}(compilou e rodou)${NC}"
         PASS=$((PASS + 1))
     else
         echo -e "${RED}FAIL${NC} $name ${DIM}(programa imprimiu outra coisa)${NC}"
-        diff <(cat "$expected_file") <("$tmp/prog") | sed 's/^/      /' | head -12
+        diff <(printf '%s\n' "$expected_out") <(printf '%s\n' "$actual_out") | sed 's/^/      /' | head -12
         FAIL=$((FAIL + 1))
     fi
     rm -rf "$tmp"
@@ -102,12 +108,13 @@ suite() {
 }
 
 echo "=== Golden Tests ==="
-suite "Analise lexica"    lexer      -t
-suite "Analise sintatica" parser     "-a"
-suite "AST"               ast        -a
-suite "Analise semantica" semantica  ""
-suite "Geracao de codigo" codegen    ""
-suite "Execucao"          execucao   "" run_execucao
+suite "Analise lexica"       lexer      -t
+suite "Analise sintatica"    parser     "-a"
+suite "AST"                  ast        -a
+suite "Analise semantica"    semantica  ""
+suite "Codigo intermediario" tac        -i
+suite "Geracao de codigo"    codegen    ""
+suite "Execucao"             execucao   "" run_execucao
 
 echo
 echo "=== $PASS/$TOTAL passaram, $FAIL falharam ==="
