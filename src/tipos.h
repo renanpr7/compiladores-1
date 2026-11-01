@@ -64,6 +64,7 @@ typedef struct NoAST {
     int eh_const;
     int eh_referencia;
     int eh_parenthesized;
+    int passa_endereco;
     struct NoAST *filho[AST_MAX_FILHOS];
     struct NoAST *proximo;
     int linha;
