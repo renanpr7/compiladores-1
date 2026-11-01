@@ -58,6 +58,16 @@ static void codegen_comando(ContextoCodegen *ctx, const NoAST *no);
 static void codegen_bloco(ContextoCodegen *ctx, const NoAST *no);
 static void codegen_corpo(ContextoCodegen *ctx, const NoAST *no);
 
+/* Uma referencia ja e um ponteiro: passa o nome, sem tomar o endereco de novo. */
+static void emitir_endereco(ContextoCodegen *ctx, const NoAST *no) {
+    if (no->tipo == NO_ID && no->eh_referencia) {
+        fprintf(ctx->out, "%s", no->texto ? no->texto : "");
+    } else {
+        fprintf(ctx->out, "&");
+        codegen_expressao(ctx, no);
+    }
+}
+
 static void codegen_expressao(ContextoCodegen *ctx, const NoAST *no) {
     if (!no) return;
 
@@ -85,7 +95,7 @@ static void codegen_expressao(ContextoCodegen *ctx, const NoAST *no) {
         break;
 
     case NO_ID:
-        fprintf(ctx->out, "%s", no->texto ? no->texto : "");
+        fprintf(ctx->out, no->eh_referencia ? "(*%s)" : "%s", no->texto ? no->texto : "");
         break;
 
     case NO_INDICE:
@@ -97,7 +107,8 @@ static void codegen_expressao(ContextoCodegen *ctx, const NoAST *no) {
     case NO_CHAMADA:
         fprintf(ctx->out, "%s(", no->texto ? no->texto : "");
         for (const NoAST *arg = no->filho[0]; arg != NULL; arg = arg->proximo) {
-            codegen_expressao(ctx, arg);
+            if (arg->passa_endereco) emitir_endereco(ctx, arg);
+            else codegen_expressao(ctx, arg);
             if (arg->proximo) fprintf(ctx->out, ", ");
         }
         fprintf(ctx->out, ")");
@@ -184,7 +195,8 @@ static void codegen_funcao(ContextoCodegen *ctx, const NoAST *no) {
         fprintf(ctx->out, "void");
     } else {
         for (const NoAST *param = no->filho[0]; param != NULL; param = param->proximo) {
-            fprintf(ctx->out, "%s %s", tipo_para_c(param->tipo_dado), param->texto ? param->texto : "");
+            fprintf(ctx->out, "%s %s%s", tipo_para_c(param->tipo_dado), param->eh_referencia ? "*" : "",
+                    param->texto ? param->texto : "");
             if (param->proximo) fprintf(ctx->out, ", ");
         }
     }
@@ -248,14 +260,8 @@ static void codegen_cin(ContextoCodegen *ctx, const NoAST *no) {
     fprintf(ctx->out, "\"");
 
     for (const NoAST *alvo = no->filho[0]; alvo != NULL; alvo = alvo->proximo) {
-        fprintf(ctx->out, ", &");
-        if (alvo->tipo == NO_INDICE) {
-            fprintf(ctx->out, "%s[", alvo->texto ? alvo->texto : "");
-            codegen_expressao(ctx, alvo->filho[0]);
-            fprintf(ctx->out, "]");
-        } else {
-            fprintf(ctx->out, "%s", alvo->texto ? alvo->texto : "");
-        }
+        fprintf(ctx->out, ", ");
+        emitir_endereco(ctx, alvo);
     }
     fprintf(ctx->out, ");\n");
 }
