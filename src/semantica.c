@@ -119,10 +119,6 @@ static void analisar_funcao(ContextoSemantico *ctx, NoAST *no) {
     entrar_escopo(ctx->tabela);
 
     for (NoAST *param = no->filho[0]; param != NULL; param = param->proximo) {
-        if (param->eh_referencia) {
-            erro_semantico(ctx, param->linha, param->coluna,
-                           "referencias ainda nao suportadas");
-        }
         if (param->filho[0]) {
             visitar_no(ctx, param->filho[0]);
             if (!tipos_compativeis_atribuicao(param->tipo_dado, param->filho[0]->tipo_dado)) {
@@ -206,6 +202,20 @@ static void analisar_chamada(ContextoSemantico *ctx, NoAST *no) {
     case BUSCA_FUNC_OK:
         if (comp) {
             no->tipo_dado = comp->tipo;
+            int indice = 0;
+            for (NoAST *arg = no->filho[0]; arg != NULL && indice < num_args && indice < comp->num_params;
+                 arg = arg->proximo, ++indice) {
+                if (!comp->ref_params || !comp->ref_params[indice]) continue;
+                if (arg->tipo != NO_ID && arg->tipo != NO_INDICE) {
+                    erro_semantico(ctx, arg->linha, arg->coluna,
+                                   "argumento por referencia precisa ser uma variavel");
+                } else if (arg->eh_const) {
+                    erro_semantico(ctx, arg->linha, arg->coluna,
+                                   "constante '%s' nao pode ser passada por referencia", arg->texto);
+                } else {
+                    arg->passa_endereco = 1;
+                }
+            }
             /* Os defaults pertencem a tabela, mas cada chamada recebe donos
              * proprios. Assim liberar a AST da funcao e da chamada nunca
              * percorre o mesmo no duas vezes. */

@@ -212,6 +212,7 @@ NoAST *clonarExpressaoAST(const NoAST *origem) {
     copia->eh_const = origem->eh_const;
     copia->eh_referencia = origem->eh_referencia;
     copia->eh_parenthesized = origem->eh_parenthesized;
+    copia->passa_endereco = origem->passa_endereco;
     if (origem->texto) copia->texto = copiar(origem->texto);
 
     for (int i = 0; i < AST_MAX_FILHOS; ++i)
