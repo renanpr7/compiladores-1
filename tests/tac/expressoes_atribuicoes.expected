@@ -1,0 +1,13 @@
+func main:
+    _t1 = 3 * 4
+    _t2 = 2 + _t1
+    a = _t2
+    _t3 = -a
+    b = _t3
+    _t4 = a + 5
+    a = _t4
+    _t5 = a + 1
+    a = _t5
+    _t6 = a + b
+    return _t6
+endfunc main

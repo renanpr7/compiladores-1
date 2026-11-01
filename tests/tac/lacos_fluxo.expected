@@ -1,0 +1,30 @@
+func main:
+    s = 0
+    i = 0
+L1:
+    _t1 = i < 5
+    ifZ _t1 goto L3
+    _t2 = i == 2
+    ifZ _t2 goto L4
+    goto L2
+L4:
+    _t3 = i == 4
+    ifZ _t3 goto L5
+    goto L3
+L5:
+    _t4 = s + i
+    s = _t4
+L2:
+    _t5 = i + 1
+    i = _t5
+    goto L1
+L3:
+L6:
+    _t6 = s > 0
+    ifZ _t6 goto L7
+    _t7 = s - 1
+    s = _t7
+    goto L6
+L7:
+    return s
+endfunc main

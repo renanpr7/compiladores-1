@@ -1,0 +1,20 @@
+func main:
+    a = 10
+    r = 0
+    _t1 = a > 5
+    ifZ _t1 goto L1
+    r = 1
+    goto L2
+L1:
+    r = 2
+L2:
+    _t2 = a > r
+    ifZ _t2 goto L3
+    _t3 = a
+    goto L4
+L3:
+    _t3 = r
+L4:
+    m = _t3
+    return m
+endfunc main
