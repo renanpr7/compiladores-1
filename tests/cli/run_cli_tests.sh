@@ -46,7 +46,7 @@ printf 'int main() { int a = 1 + 2; return a; }\n' > "$TMP_DIR/tac.cpp"
 "$COMPILADOR" -i < "$TMP_DIR/tac.cpp" > "$TMP_DIR/tac.out" 2> "$TMP_DIR/tac.err"
 status=$?
 check "short tac flag" 0 "$status" \
-    "grep -q '^func main:' \"$TMP_DIR/tac.out\" && grep -q '^    _t1 = 1 + 2' \"$TMP_DIR/tac.out\" && grep -q '^    a = _t1' \"$TMP_DIR/tac.out\" && grep -q '^    return a' \"$TMP_DIR/tac.out\" && grep -q '^endfunc main' \"$TMP_DIR/tac.out\" && [ ! -s \"$TMP_DIR/tac.err\" ]"
+    "grep -q '^func main:' \"$TMP_DIR/tac.out\" && grep -q '^    a = 3' \"$TMP_DIR/tac.out\" && grep -q '^    return a' \"$TMP_DIR/tac.out\" && grep -q '^endfunc main' \"$TMP_DIR/tac.out\" && [ ! -s \"$TMP_DIR/tac.err\" ]"
 
 "$COMPILADOR" --tac < "$TMP_DIR/tac.cpp" > "$TMP_DIR/tac-long.out" 2> "$TMP_DIR/tac-long.err"
 status=$?

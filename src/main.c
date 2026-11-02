@@ -112,6 +112,7 @@ int main(int argc, char **argv) {
             ast_raiz = NULL;
             return 1;
         }
+        ast_raiz = otimizar_ast(ast_raiz);
         ProgramaTAC *tac = gerar_tac(ast_raiz);
         imprimir_tac(tac, stdout);
         liberar_tac(tac);
@@ -135,6 +136,7 @@ int main(int argc, char **argv) {
         ast_raiz = NULL;
         return 1;
     }
+    ast_raiz = otimizar_ast(ast_raiz);
     gerar_codigo(ast_raiz, stdout);
     liberarAST(ast_raiz);
     ast_raiz = NULL;

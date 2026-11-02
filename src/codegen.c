@@ -118,13 +118,26 @@ static void codegen_expressao(ContextoCodegen *ctx, const NoAST *no) {
         fprintf(ctx->out, "(");
         codegen_expressao(ctx, no->filho[0]);
         fprintf(ctx->out, " %s ", op_simbolo(no->operador));
-        codegen_expressao(ctx, no->filho[1]);
+        if (no->filho[1] &&
+            ((no->filho[1]->tipo == NO_NUM && no->filho[1]->valor_int < 0) ||
+             (no->filho[1]->tipo == NO_FLOAT && no->filho[1]->valor_float < 0.0f))) {
+            fprintf(ctx->out, "(");
+            codegen_expressao(ctx, no->filho[1]);
+            fprintf(ctx->out, ")");
+        } else {
+            codegen_expressao(ctx, no->filho[1]);
+        }
         fprintf(ctx->out, ")");
         break;
 
     case NO_OP_UNARIO:
         fprintf(ctx->out, "%s", op_simbolo(no->operador));
-        if (no->filho[0] && (no->filho[0]->tipo == NO_OP_BINARIO || no->filho[0]->tipo == NO_TERNARIO)) {
+        if (no->filho[0] &&
+            (no->filho[0]->tipo == NO_OP_BINARIO ||
+             no->filho[0]->tipo == NO_TERNARIO ||
+             (no->operador == OP_NEG && no->filho[0]->tipo == NO_OP_UNARIO && no->filho[0]->operador == OP_NEG) ||
+             (no->operador == OP_NEG && no->filho[0]->tipo == NO_NUM && no->filho[0]->valor_int < 0) ||
+             (no->operador == OP_NEG && no->filho[0]->tipo == NO_FLOAT && no->filho[0]->valor_float < 0.0f))) {
             fprintf(ctx->out, "(");
             codegen_expressao(ctx, no->filho[0]);
             fprintf(ctx->out, ")");
