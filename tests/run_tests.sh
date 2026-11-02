@@ -10,7 +10,7 @@
 # Fases (o professor pede teste automatizado para cada uma):
 #   lexer/       dump de tokens          ./compilador -t
 #   parser/      validacao sintatica     ./compilador -a
-#   ast/         dump da arvore          ./compilador -a
+#   ast/         arvore e folding        ./compilador -a
 #   semantica/   erros de significado    ./compilador
 #   tac/         codigo intermediario    ./compilador -i
 #   codegen/     codigo C gerado         ./compilador

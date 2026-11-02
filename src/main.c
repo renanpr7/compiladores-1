@@ -4,6 +4,7 @@
 #include "ast.h"
 #include "diagnostics.h"
 #include "semantica.h"
+#include "optimize.h"
 #include "tac.h"
 #include "codegen.h"
 
@@ -93,6 +94,7 @@ int main(int argc, char **argv) {
             ast_raiz = NULL;
             return 1;
         }
+        ast_raiz = otimizar_ast(ast_raiz);
         imprimirAST(ast_raiz);
         liberarAST(ast_raiz);
         ast_raiz = NULL;

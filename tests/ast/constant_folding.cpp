@@ -1,0 +1,12 @@
+int a = 2 + 3 * 4;
+int b = (20 - 6) / 2 % 4;
+float c = 10.0 / 2.0 + 1;
+bool r1 = 5 > 3;
+bool r2 = 4 <= 2 + 1;
+bool r3 = 3.5 == 3.5;
+bool l1 = true && false;
+bool l2 = false || (5 != 3);
+int u1 = -42;
+float u2 = -2.5;
+bool u3 = !false;
+int p = x + (3 * 5);
