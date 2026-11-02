@@ -61,14 +61,21 @@ static uint32_t hash_fnv1a(const char *str) {
 static void liberar_simbolo(Simbolo *s) {
     if (!s) return;
     free(s->nome);
+    s->nome = NULL;
     free(s->nome_mangled);
+    s->nome_mangled = NULL;
     free(s->tipos_param);
+    s->tipos_param = NULL;
     free(s->ref_params);
+    s->ref_params = NULL;
     if (s->valores_padrao) {
-        for (int i = 0; i < s->num_params; ++i)
+        for (int i = 0; i < s->num_params; ++i) {
             liberarAST(s->valores_padrao[i]);
+            s->valores_padrao[i] = NULL;
+        }
     }
     free(s->valores_padrao);
+    s->valores_padrao = NULL;
     free(s);
 }
 

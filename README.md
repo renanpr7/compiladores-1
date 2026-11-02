@@ -6,7 +6,7 @@ O compilador lê um subconjunto imperativo de C++, sem orientação a objetos, e
 A saída é C de verdade: compila com `gcc` e executa.
 
 ```
-C++ (subconjunto)  →  Flex  →  Bison  →  AST  →  C
+C++ (subconjunto)  →  Flex  →  Bison  →  AST  →  Semântica  →  Constant Folding  →  TAC / C99
 ```
 
 ```bash
@@ -18,13 +18,10 @@ O subconjunto inclui de propósito sobrecarga de funções, referências e parâ
 Nenhuma tem equivalente direto em C, então o compilador traduz em vez de copiar. O que é aceito e
 como cada construção é traduzida está em [docs/linguagem.md](docs/linguagem.md).
 
-> **Estado atual:** front-end completo. O lexer reconhece todo o subconjunto com posição de linha e
-> coluna, o parser valida a gramática e monta a AST, e `./compilador -a` imprime a árvore. São **84
-> testes automatizados** passando (76 golden tests e 8 de linha de comando).
->
-> Falta o back-end: análise semântica na Sprint 4, TAC e geração de C na Sprint 5. Até lá o modo
-> padrão apenas valida a entrada e responde `OK`. O andamento está nas
-> [issues](https://github.com/renanpr7/compiladores-1/issues).
+> **Estado atual:** pipeline completo de ponta a ponta. O lexer reconhece todo o subconjunto com posição de linha e
+> coluna, o parser valida a gramática e monta a AST, o analisador semântico valida escopo, tipos, sobrecarga (com *name mangling*), parâmetros padrão e referências, o otimizador realiza *constant folding* na AST, `./compilador -i` emite o código intermediário de três endereços (TAC) e o modo padrão gera código C99 válido. São **127
+> testes automatizados** passando (114 golden tests e 13 de linha de comando), validados também sem vazamentos de memória via AddressSanitizer/LeakSanitizer.
+> O histórico de desenvolvimento está nas [issues](https://github.com/renanpr7/compiladores-1/issues).
 
 ## Ambiente
 
@@ -38,22 +35,21 @@ sudo apt install flex bison build-essential
 ## Comandos
 
 ```bash
-make          # gera ./compilador
-make test     # roda os golden tests
-make clean    # remove os artefatos gerados
+make              # gera ./compilador
+make test         # roda os golden tests e testes de CLI
+make test-memory  # roda toda a bateria com sanitizacao de memoria (ASan/LSan/UBSan)
+make clean        # remove os artefatos gerados
 ```
 
 O compilador lê da entrada padrão e escreve na saída padrão:
 
 ```bash
 ./compilador -t < programa.cpp    # dump de tokens
-./compilador -a < programa.cpp    # dump da AST
+./compilador -a < programa.cpp    # dump da AST (apos constant folding)
+./compilador -i < programa.cpp    # codigo intermediario de tres enderecos (TAC)
 ./compilador -h                   # ajuda
-./compilador    < programa.cpp    # valida a entrada
+./compilador    < programa.cpp    # valida a entrada e emite o codigo C99 equivalente
 ```
-
-Ainda não implementados: `-i`, que vai imprimir o código de três endereços, e a geração de C no
-modo padrão — os dois entram nas Sprints 4 e 5.
 
 ## Testes
 
@@ -65,8 +61,9 @@ casos dentro de uma pasta `erros/` devem terminar com 1, os demais com 0.
 | `lexer/` | os tokens reconhecidos | `./compilador -t` |
 | `parser/aceita/` | programas válidos são aceitos | `./compilador` |
 | `parser/erros/` | programas inválidos são recusados | `./compilador` |
-| `ast/` | a árvore montada | `./compilador -a` |
+| `ast/` | a árvore montada e simplificada | `./compilador -a` |
 | `semantica/` | escopo, tipos, declaração antes do uso | `./compilador` |
+| `tac/` | o código intermediário de três endereços | `./compilador -i` |
 | `codegen/` | o C gerado | `./compilador` |
 | `execucao/` | o C gerado compila e roda | `gcc` + execução |
 | `cli/` | flags, códigos de saída e limite de diagnósticos | `tests/cli/run_cli_tests.sh` |
@@ -80,16 +77,22 @@ Toda issue entrega os próprios testes. `make test` verde é critério de aceite
 
 ```
 src/
-  lexer.l       regras do Flex: texto vira tokens
-  parser.y      gramática do Bison: valida a estrutura e monta a AST
-  tipos.h       o nó da AST
-  ast.c ast.h   construtores, impressão e liberação da árvore
-  main.c        interface de linha de comando
+  lexer.l                   regras do Flex: texto vira tokens
+  parser.y                  gramática do Bison: valida a estrutura e monta a AST
+  tipos.h                   tipos de dados, operadores e estrutura do nó da AST
+  ast.c ast.h               construtores, clonagem, impressão e liberação da árvore
+  diagnostics.c diagnostics.h centralização e formatação de diagnósticos de erro
+  tabela.c tabela.h         tabela de símbolos com escopos aninhados e sobrecarga
+  semantica.c semantica.h   verificação de tipos, escopo, referências, defaults e mangling
+  optimize.c optimize.h     otimização na AST via constant folding
+  tac.c tac.h               geração e impressão de código de três endereços (TAC)
+  codegen.c codegen.h       geração de código C99 a partir da AST
+  main.c                    interface de linha de comando e pipeline principal
 tests/
-  run_tests.sh  executa os golden tests de todas as fases
-  cli/          testes da interface de linha de comando
+  run_tests.sh              executa os golden tests de todas as fases
+  cli/                      testes da interface de linha de comando
 docs/
-  linguagem.md  o C++ que aceitamos e o C que emitimos
+  linguagem.md              o C++ que aceitamos e o C que emitimos
 Makefile
 ```
 
