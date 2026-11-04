@@ -116,6 +116,11 @@ int main(int argc, char **argv) {
             ast_raiz = NULL;
             return 1;
         }
+        if (otimizar_ast(ast_raiz) > 0) {
+            liberarAST(ast_raiz);
+            ast_raiz = NULL;
+            return 1;
+        }
         ProgramaTAC *tac = gerar_tac(ast_raiz);
         imprimir_tac(tac, stdout);
         liberar_tac(tac);
@@ -135,6 +140,11 @@ int main(int argc, char **argv) {
         return 1;
     }
     if (analisar_semantica(ast_raiz) > 0) {
+        liberarAST(ast_raiz);
+        ast_raiz = NULL;
+        return 1;
+    }
+    if (otimizar_ast(ast_raiz) > 0) {
         liberarAST(ast_raiz);
         ast_raiz = NULL;
         return 1;

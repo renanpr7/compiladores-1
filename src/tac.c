@@ -588,10 +588,17 @@ void imprimir_tac(const ProgramaTAC *prog, FILE *saida) {
                     inst->arg2 ? inst->arg2 : "");
             break;
         case TAC_UNOP:
-            fprintf(saida, "    %s = %s%s\n",
-                    inst->result ? inst->result : "",
-                    inst->op ? inst->op : "",
-                    inst->arg1 ? inst->arg1 : "");
+            if (inst->op && inst->arg1 && inst->op[0] == '-' && inst->arg1[0] == '-') {
+                fprintf(saida, "    %s = %s(%s)\n",
+                        inst->result ? inst->result : "",
+                        inst->op,
+                        inst->arg1);
+            } else {
+                fprintf(saida, "    %s = %s%s\n",
+                        inst->result ? inst->result : "",
+                        inst->op ? inst->op : "",
+                        inst->arg1 ? inst->arg1 : "");
+            }
             break;
         case TAC_ARR_LOAD:
             fprintf(saida, "    %s = %s[%s]\n",
