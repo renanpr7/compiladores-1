@@ -124,7 +124,11 @@ suite "Execucao"             execucao   "" run_execucao
 echo
 echo "=== $PASS/$TOTAL passaram, $FAIL falharam ==="
 if [ "${RUN_MEMORY_CHECK:-0}" = "1" ] && [ "$FAIL" -eq 0 ]; then
-    echo "=== Verificacao de memoria concluida (definitely lost: 0 bytes) ==="
+    if [ "${USE_VALGRIND:-0}" = "1" ]; then
+        echo "=== Verificacao de memoria concluida (definitely lost: 0 bytes) ==="
+    else
+        echo "=== Verificacao de memoria concluida (sem vazamentos detectados pelo AddressSanitizer) ==="
+    fi
 fi
 [ "$FAIL" -gt 0 ] && exit 1
 exit 0

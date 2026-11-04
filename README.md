@@ -19,8 +19,8 @@ Nenhuma tem equivalente direto em C, então o compilador traduz em vez de copiar
 como cada construção é traduzida está em [docs/linguagem.md](docs/linguagem.md).
 
 > **Estado atual:** pipeline completo de ponta a ponta. O lexer reconhece todo o subconjunto com posição de linha e
-> coluna, o parser valida a gramática e monta a AST, o analisador semântico valida escopo, tipos, sobrecarga (com *name mangling*), parâmetros padrão e referências, o otimizador realiza *constant folding* na AST, `./compilador -i` emite o código intermediário de três endereços (TAC) e o modo padrão gera código C99 válido. São **127
-> testes automatizados** passando (114 golden tests e 13 de linha de comando), validados também sem vazamentos de memória via AddressSanitizer/LeakSanitizer.
+> coluna, o parser valida a gramática e monta a AST, o analisador semântico valida escopo, tipos, sobrecarga (com *name mangling*), parâmetros padrão e referências, o otimizador realiza *constant folding* na AST, `./compilador -i` emite o código intermediário de três endereços (TAC) e o modo padrão gera código C99 válido. São **128
+> testes automatizados** passando (115 golden tests e 13 de linha de comando), validados também sem vazamentos de memória via AddressSanitizer/LeakSanitizer.
 > O histórico de desenvolvimento está nas [issues](https://github.com/renanpr7/compiladores-1/issues).
 
 ## Ambiente

@@ -104,8 +104,7 @@ int main(int argc, char **argv) {
             return 1;
         }
         if (otimizar_ast(ast_raiz) > 0) {
-            liberarAST(ast_raiz);
-            ast_raiz = NULL;
+            limpar_recursos();
             return 1;
         }
         imprimirAST(ast_raiz);
@@ -123,8 +122,7 @@ int main(int argc, char **argv) {
             return 1;
         }
         if (otimizar_ast(ast_raiz) > 0) {
-            liberarAST(ast_raiz);
-            ast_raiz = NULL;
+            limpar_recursos();
             return 1;
         }
         ProgramaTAC *tac = gerar_tac(ast_raiz);
@@ -148,8 +146,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     if (otimizar_ast(ast_raiz) > 0) {
-        liberarAST(ast_raiz);
-        ast_raiz = NULL;
+        limpar_recursos();
         return 1;
     }
     gerar_codigo(ast_raiz, stdout);
