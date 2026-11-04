@@ -4,6 +4,7 @@
 #include "ast.h"
 #include "diagnostics.h"
 #include "semantica.h"
+#include "optimize.h"
 #include "tac.h"
 #include "codegen.h"
 
@@ -89,6 +90,11 @@ int main(int argc, char **argv) {
     if (argc == 2 && (!strcmp(argv[1], "-a") || !strcmp(argv[1], "--ast"))) {
         result = yyparse();
         if (lexical_errors || result != 0 || erros_compilacao > 0) {
+            liberarAST(ast_raiz);
+            ast_raiz = NULL;
+            return 1;
+        }
+        if (otimizar_ast(ast_raiz) > 0) {
             liberarAST(ast_raiz);
             ast_raiz = NULL;
             return 1;
