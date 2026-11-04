@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "parser.tab.h"
 #include "ast.h"
@@ -10,6 +11,7 @@
 
 extern int yyparse(void);
 extern int yylex(void);
+extern int yylex_destroy(void);
 extern char *yytext;
 extern int lexer_line;
 extern int lexer_column;
@@ -17,14 +19,6 @@ extern int lexical_errors;
 extern const char *lexer_lexeme;
 extern int erros_compilacao;
 extern NoAST *ast_raiz;
-
-int diagnostic_count = 0;
-
-int report_diagnostic(void) {
-    if (diagnostic_count >= MAX_DIAGNOSTICS) return 0;
-    ++diagnostic_count;
-    return 1;
-}
 
 static const char *token_name(int token) {
     switch (token) {
@@ -48,6 +42,12 @@ static const char *token_name(int token) {
     }
 }
 
+static void limpar_recursos(void) {
+    liberarAST(ast_raiz);
+    ast_raiz = NULL;
+    yylex_destroy();
+}
+
 static int dump_tokens(void) {
     int token;
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -55,8 +55,18 @@ static int dump_tokens(void) {
     while ((token = yylex()) != 0) {
         printf("%d:%d %s \"%s\"\n", yylloc.first_line, yylloc.first_column,
                token_name(token), lexer_lexeme ? lexer_lexeme : yytext);
+        if (token == IDENT) {
+            free(yylval.identifier);
+            yylval.identifier = NULL;
+            lexer_lexeme = NULL;
+        } else if (token == STRING_LIT) {
+            free(yylval.string_value);
+            yylval.string_value = NULL;
+            lexer_lexeme = NULL;
+        }
     }
     printf("%d:%d EOF\n", lexer_line, lexer_column);
+    yylex_destroy();
     return lexical_errors ? 1 : 0;
 }
 
@@ -90,42 +100,35 @@ int main(int argc, char **argv) {
     if (argc == 2 && (!strcmp(argv[1], "-a") || !strcmp(argv[1], "--ast"))) {
         result = yyparse();
         if (lexical_errors || result != 0 || erros_compilacao > 0) {
-            liberarAST(ast_raiz);
-            ast_raiz = NULL;
+            limpar_recursos();
             return 1;
         }
         if (otimizar_ast(ast_raiz) > 0) {
-            liberarAST(ast_raiz);
-            ast_raiz = NULL;
+            limpar_recursos();
             return 1;
         }
         imprimirAST(ast_raiz);
-        liberarAST(ast_raiz);
-        ast_raiz = NULL;
+        limpar_recursos();
         return 0;
     }
     if (argc == 2 && (!strcmp(argv[1], "-i") || !strcmp(argv[1], "--tac"))) {
         result = yyparse();
         if (lexical_errors || result != 0 || erros_compilacao > 0) {
-            liberarAST(ast_raiz);
-            ast_raiz = NULL;
+            limpar_recursos();
             return 1;
         }
         if (analisar_semantica(ast_raiz) > 0) {
-            liberarAST(ast_raiz);
-            ast_raiz = NULL;
+            limpar_recursos();
             return 1;
         }
         if (otimizar_ast(ast_raiz) > 0) {
-            liberarAST(ast_raiz);
-            ast_raiz = NULL;
+            limpar_recursos();
             return 1;
         }
         ProgramaTAC *tac = gerar_tac(ast_raiz);
         imprimir_tac(tac, stdout);
         liberar_tac(tac);
-        liberarAST(ast_raiz);
-        ast_raiz = NULL;
+        limpar_recursos();
         return 0;
     }
     if (argc != 1) {
@@ -135,22 +138,18 @@ int main(int argc, char **argv) {
 
     result = yyparse();
     if (lexical_errors || result != 0 || erros_compilacao > 0) {
-        liberarAST(ast_raiz);
-        ast_raiz = NULL;
+        limpar_recursos();
         return 1;
     }
     if (analisar_semantica(ast_raiz) > 0) {
-        liberarAST(ast_raiz);
-        ast_raiz = NULL;
+        limpar_recursos();
         return 1;
     }
     if (otimizar_ast(ast_raiz) > 0) {
-        liberarAST(ast_raiz);
-        ast_raiz = NULL;
+        limpar_recursos();
         return 1;
     }
     gerar_codigo(ast_raiz, stdout);
-    liberarAST(ast_raiz);
-    ast_raiz = NULL;
+    limpar_recursos();
     return 0;
 }

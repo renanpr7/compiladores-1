@@ -28,10 +28,7 @@ static int erros_otimizacao = 0;
 
 static void reportar_divisao_por_zero(int linha, int coluna) {
     erros_otimizacao++;
-    if (report_diagnostic()) {
-        fprintf(stderr, "Erro semantico na linha %d, coluna %d: divisao por zero\n",
-                linha, coluna);
-    }
+    emit_diagnostic("Erro semantico", linha, coluna, "divisao por zero");
 }
 
 static void limpar_filhos(NoAST *no) {

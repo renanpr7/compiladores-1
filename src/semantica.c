@@ -15,14 +15,10 @@ typedef struct {
 
 static void erro_semantico(ContextoSemantico *ctx, int linha, int coluna, const char *fmt, ...) {
     ctx->erros++;
-    if (report_diagnostic()) {
-        va_list args;
-        va_start(args, fmt);
-        fprintf(stderr, "Erro semantico na linha %d, coluna %d: ", linha, coluna);
-        vfprintf(stderr, fmt, args);
-        fputc('\n', stderr);
-        va_end(args);
-    }
+    va_list args;
+    va_start(args, fmt);
+    vemit_diagnostic("Erro semantico", linha, coluna, fmt, args);
+    va_end(args);
 }
 
 static int eh_numerico(TipoDado t) {
@@ -140,7 +136,7 @@ static void analisar_funcao(ContextoSemantico *ctx, NoAST *no) {
      * independentes, portanto atualize-as depois dessa visita. */
     if (f && f->valores_padrao) {
         int indice = 0;
-        for (NoAST *param = no->filho[0]; param != NULL; param = param->proximo, ++indice) {
+        for (NoAST *param = no->filho[0]; param != NULL && indice < f->num_params; param = param->proximo, ++indice) {
             liberarAST(f->valores_padrao[indice]);
             f->valores_padrao[indice] = param->filho[0]
                 ? clonarExpressaoAST(param->filho[0]) : NULL;

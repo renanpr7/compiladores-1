@@ -146,7 +146,7 @@ declarador:
   | IDENT LBRACKET expressao RBRACKET
       { $$ = criarNoDeclarador($1, NULL, $3, @1.first_line, @1.first_column); free($1); }
   | IDENT LBRACKET expressao RBRACKET LBRACKET expressao RBRACKET
-      { (void)$1; (void)$3; (void)$6; $$ = NULL; yyerror("array de duas dimensoes nao suportado"); YYERROR; }
+      { free($1); liberarAST($3); liberarAST($6); $$ = NULL; yyerror("array de duas dimensoes nao suportado"); YYERROR; }
 ;
 
 const_declaradores:
@@ -323,15 +323,15 @@ erro_fora_escopo:
 
 expressao:
     expressao ASSIGN expressao %prec ASSIGN
-      { if (!eh_alvo($1)) { erro_atribuicao_invalida(@2.first_line, @2.first_column); YYERROR; } $$ = criarNoAtribuicao(OP_ATRIB, $1, $3, @2.first_line, @2.first_column); }
+      { if (!eh_alvo($1)) { liberarAST($1); liberarAST($3); $$ = NULL; erro_atribuicao_invalida(@2.first_line, @2.first_column); YYERROR; } $$ = criarNoAtribuicao(OP_ATRIB, $1, $3, @2.first_line, @2.first_column); }
   | expressao PLUS_ASSIGN expressao %prec PLUS_ASSIGN
-      { if (!eh_alvo($1)) { erro_atribuicao_invalida(@2.first_line, @2.first_column); YYERROR; } $$ = criarNoAtribuicao(OP_ATRIB_SOMA, $1, $3, @2.first_line, @2.first_column); }
+      { if (!eh_alvo($1)) { liberarAST($1); liberarAST($3); $$ = NULL; erro_atribuicao_invalida(@2.first_line, @2.first_column); YYERROR; } $$ = criarNoAtribuicao(OP_ATRIB_SOMA, $1, $3, @2.first_line, @2.first_column); }
   | expressao MINUS_ASSIGN expressao %prec MINUS_ASSIGN
-      { if (!eh_alvo($1)) { erro_atribuicao_invalida(@2.first_line, @2.first_column); YYERROR; } $$ = criarNoAtribuicao(OP_ATRIB_SUB, $1, $3, @2.first_line, @2.first_column); }
+      { if (!eh_alvo($1)) { liberarAST($1); liberarAST($3); $$ = NULL; erro_atribuicao_invalida(@2.first_line, @2.first_column); YYERROR; } $$ = criarNoAtribuicao(OP_ATRIB_SUB, $1, $3, @2.first_line, @2.first_column); }
   | expressao TIMES_ASSIGN expressao %prec TIMES_ASSIGN
-      { if (!eh_alvo($1)) { erro_atribuicao_invalida(@2.first_line, @2.first_column); YYERROR; } $$ = criarNoAtribuicao(OP_ATRIB_MULT, $1, $3, @2.first_line, @2.first_column); }
+      { if (!eh_alvo($1)) { liberarAST($1); liberarAST($3); $$ = NULL; erro_atribuicao_invalida(@2.first_line, @2.first_column); YYERROR; } $$ = criarNoAtribuicao(OP_ATRIB_MULT, $1, $3, @2.first_line, @2.first_column); }
   | expressao DIVIDE_ASSIGN expressao %prec DIVIDE_ASSIGN
-      { if (!eh_alvo($1)) { erro_atribuicao_invalida(@2.first_line, @2.first_column); YYERROR; } $$ = criarNoAtribuicao(OP_ATRIB_DIV, $1, $3, @2.first_line, @2.first_column); }
+      { if (!eh_alvo($1)) { liberarAST($1); liberarAST($3); $$ = NULL; erro_atribuicao_invalida(@2.first_line, @2.first_column); YYERROR; } $$ = criarNoAtribuicao(OP_ATRIB_DIV, $1, $3, @2.first_line, @2.first_column); }
   | expressao QUESTION expressao COLON expressao %prec COLON
       { $$ = criarNoTernario($1, $3, $5, @2.first_line, @2.first_column); }
   | expressao OR expressao %prec OR { $$ = criarNoOp(OP_OU, $1, $3, @2.first_line, @2.first_column); }
@@ -349,8 +349,8 @@ expressao:
   | expressao MOD expressao %prec MOD { $$ = criarNoOp(OP_MOD, $1, $3, @2.first_line, @2.first_column); }
   | MINUS expressao %prec UMINUS { $$ = criarNoOpUnario(OP_NEG, $2, @1.first_line, @1.first_column); }
   | NOT expressao %prec NOT { $$ = criarNoOpUnario(OP_NAO, $2, @1.first_line, @1.first_column); }
-  | INC expressao %prec NOT { (void)$2; $$ = NULL; yyerror("incremento/decremento nao permitido dentro de expressao"); YYERROR; }
-  | DEC expressao %prec NOT { (void)$2; $$ = NULL; yyerror("incremento/decremento nao permitido dentro de expressao"); YYERROR; }
+  | INC expressao %prec NOT { liberarAST($2); $$ = NULL; yyerror("incremento/decremento nao permitido dentro de expressao"); YYERROR; }
+  | DEC expressao %prec NOT { liberarAST($2); $$ = NULL; yyerror("incremento/decremento nao permitido dentro de expressao"); YYERROR; }
   | primario { $$ = $1; }
 ;
 
@@ -391,6 +391,5 @@ static void erro_atribuicao_invalida(int linha, int coluna) {
 void yyerror(const char *s) {
     if (erros_compilacao >= MAX_ERROS) return;
     erros_compilacao++;
-    if (report_diagnostic())
-        fprintf(stderr, "Erro de sintaxe na linha %d, coluna %d: %s\n", yylloc.first_line, yylloc.first_column, s);
+    emit_diagnostic("Erro de sintaxe", yylloc.first_line, yylloc.first_column, "%s", s);
 }

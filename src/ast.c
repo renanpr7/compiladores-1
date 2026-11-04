@@ -332,9 +332,13 @@ void imprimirAST(NoAST *raiz) {
 void liberarAST(NoAST *raiz) {
     while (raiz) {
         NoAST *proximo = raiz->proximo;
-        for (int i = 0; i < AST_MAX_FILHOS; ++i)
+        raiz->proximo = NULL;
+        for (int i = 0; i < AST_MAX_FILHOS; ++i) {
             liberarAST(raiz->filho[i]);
+            raiz->filho[i] = NULL;
+        }
         free(raiz->texto);
+        raiz->texto = NULL;
         free(raiz);
         raiz = proximo;
     }

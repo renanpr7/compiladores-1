@@ -648,10 +648,17 @@ void liberar_tac(ProgramaTAC *prog) {
     if (!prog) return;
     for (size_t i = 0; i < prog->quantidade; ++i) {
         free(prog->instrucoes[i].op);
+        prog->instrucoes[i].op = NULL;
         free(prog->instrucoes[i].arg1);
+        prog->instrucoes[i].arg1 = NULL;
         free(prog->instrucoes[i].arg2);
+        prog->instrucoes[i].arg2 = NULL;
         free(prog->instrucoes[i].result);
+        prog->instrucoes[i].result = NULL;
     }
     free(prog->instrucoes);
+    prog->instrucoes = NULL;
+    prog->quantidade = 0;
+    prog->capacidade = 0;
     free(prog);
 }

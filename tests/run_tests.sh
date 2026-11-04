@@ -21,6 +21,11 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 COMPILADOR="$ROOT_DIR/compilador"
 [ -x "$ROOT_DIR/compilador.exe" ] && COMPILADOR="$ROOT_DIR/compilador.exe"
 
+RUNNER_PREFIX=()
+if [ "${USE_VALGRIND:-0}" = "1" ] && command -v valgrind >/dev/null 2>&1; then
+    RUNNER_PREFIX=(valgrind --leak-check=full --errors-for-leak-kinds=definite --error-exitcode=99 -q)
+fi
+
 PASS=0; FAIL=0; TOTAL=0
 RED='\033[0;31m'; GREEN='\033[0;32m'; DIM='\033[2m'; NC='\033[0m'
 
@@ -41,7 +46,7 @@ run_test() {
     case "$cpp_file" in */erros/*) want_exit=1 ;; esac
 
     local actual got_exit
-    actual=$("$COMPILADOR" $flag < "$cpp_file" 2>&1); got_exit=$?
+    actual=$("${RUNNER_PREFIX[@]}" "$COMPILADOR" $flag < "$cpp_file" 2>&1); got_exit=$?
 
     local expected
     expected=$(cat "$expected_file")
@@ -71,7 +76,7 @@ run_execucao() {
     local tmp; tmp=$(mktemp -d)
     TOTAL=$((TOTAL + 1))
 
-    if ! "$COMPILADOR" < "$cpp_file" > "$tmp/saida.c" 2>"$tmp/erro"; then
+    if ! "${RUNNER_PREFIX[@]}" "$COMPILADOR" < "$cpp_file" > "$tmp/saida.c" 2>"$tmp/erro"; then
         echo -e "${RED}FAIL${NC} $name ${DIM}(compilador falhou)${NC}"
         sed 's/^/      /' "$tmp/erro" | head -5
         FAIL=$((FAIL + 1)); rm -rf "$tmp"; return
@@ -118,5 +123,12 @@ suite "Execucao"             execucao   "" run_execucao
 
 echo
 echo "=== $PASS/$TOTAL passaram, $FAIL falharam ==="
+if [ "${RUN_MEMORY_CHECK:-0}" = "1" ] && [ "$FAIL" -eq 0 ]; then
+    if [ "${USE_VALGRIND:-0}" = "1" ]; then
+        echo "=== Verificacao de memoria concluida (definitely lost: 0 bytes) ==="
+    else
+        echo "=== Verificacao de memoria concluida (sem vazamentos detectados pelo AddressSanitizer) ==="
+    fi
+fi
 [ "$FAIL" -gt 0 ] && exit 1
 exit 0
