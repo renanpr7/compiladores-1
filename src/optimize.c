@@ -24,7 +24,10 @@ static int valor_como_bool(const NoAST *no) {
     return no->valor_int != 0;
 }
 
+static int erros_otimizacao = 0;
+
 static void reportar_divisao_por_zero(int linha, int coluna) {
+    erros_otimizacao++;
     if (report_diagnostic()) {
         fprintf(stderr, "Erro semantico na linha %d, coluna %d: divisao por zero\n",
                 linha, coluna);
@@ -204,19 +207,23 @@ static void otimizar_op_unario(NoAST *no) {
     }
 }
 
-NoAST *otimizar_ast(NoAST *raiz) {
-    if (!raiz) return NULL;
+static void otimizar_no(NoAST *no) {
+    if (!no) return;
 
     for (int i = 0; i < AST_MAX_FILHOS; ++i) {
-        raiz->filho[i] = otimizar_ast(raiz->filho[i]);
+        otimizar_no(no->filho[i]);
     }
-    raiz->proximo = otimizar_ast(raiz->proximo);
+    otimizar_no(no->proximo);
 
-    if (raiz->tipo == NO_OP_BINARIO) {
-        otimizar_op_binario(raiz);
-    } else if (raiz->tipo == NO_OP_UNARIO) {
-        otimizar_op_unario(raiz);
+    if (no->tipo == NO_OP_BINARIO) {
+        otimizar_op_binario(no);
+    } else if (no->tipo == NO_OP_UNARIO) {
+        otimizar_op_unario(no);
     }
+}
 
-    return raiz;
+int otimizar_ast(NoAST *raiz) {
+    erros_otimizacao = 0;
+    otimizar_no(raiz);
+    return erros_otimizacao;
 }
