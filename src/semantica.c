@@ -464,6 +464,14 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
 
     case NO_COUT:
         visitar_lista(ctx, no->filho[0]);
+        /* Funcao void nao tem valor: printf("%d", g()) o gcc recusa. */
+        for (const NoAST *item = no->filho[0]; item != NULL; item = item->proximo) {
+            if (item->tipo_dado == TIPO_VOID) {
+                erro_semantico(ctx, item->linha, item->coluna,
+                               "cout de funcao void '%s'",
+                               item->texto ? item->texto : "");
+            }
+        }
         break;
 
     case NO_CIN:
