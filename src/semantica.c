@@ -316,6 +316,13 @@ static void atualizar_nomes_chamadas(ContextoSemantico *ctx, NoAST *no) {
                 char *nome = copiar_texto_semantica(funcao->nome_mangled);
                 free(atual->texto);
                 atual->texto = nome;
+            } else if (status == BUSCA_FUNC_AMBIGUA && atual->tipo_dado != TIPO_NENHUM) {
+                /* A sobrecarga declarada depois tornou a chamada ambigua: sem
+                 * nome novo ela continuaria f(...), que nao existe no C.
+                 * Chamada ja recusada na primeira visita (TIPO_NENHUM) nao
+                 * repete o erro. */
+                erro_semantico(ctx, atual->linha, atual->coluna,
+                               "chamada ambigua para funcao '%s'", atual->texto);
             }
             free(tipos);
         }
