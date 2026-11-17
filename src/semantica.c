@@ -73,6 +73,22 @@ static int eh_constante(const NoAST *no) {
     }
 }
 
+/* bool vira int no C: sem normalizar, bool b = 5 guarda 5, imprime 5 e
+ * falha em b == true. Trocar o valor por (valor != 0) devolve o 0/1 do
+ * C++; com literal o folding reduz isso a 0 ou 1. Preserva o encadeamento
+ * por 'proximo' para servir tambem a argumentos. */
+static NoAST *normalizar_bool(TipoDado destino, NoAST *valor) {
+    if (destino != TIPO_BOOL || !valor || !eh_numerico(valor->tipo_dado)) return valor;
+    NoAST *proximo = valor->proximo;
+    valor->proximo = NULL;
+    NoAST *zero = criarNoNum(0, valor->linha, valor->coluna);
+    zero->tipo_dado = TIPO_INT;
+    NoAST *comparacao = criarNoOp(OP_DIFERENTE, valor, zero, valor->linha, valor->coluna);
+    comparacao->tipo_dado = TIPO_BOOL;
+    comparacao->proximo = proximo;
+    return comparacao;
+}
+
 static void validar_condicao(ContextoSemantico *ctx, const NoAST *cmd, const NoAST *cond) {
     if (!cond || cond->tipo_dado == TIPO_NENHUM) return;
     if (!eh_escalar_condicao(cond->tipo_dado)) {
@@ -124,6 +140,8 @@ static void analisar_declaracao(ContextoSemantico *ctx, NoAST *no) {
                 erro_semantico(ctx, decl->linha, decl->coluna,
                                "valor inicial da variavel global '%s' deve ser constante",
                                decl->texto);
+            } else {
+                decl->filho[0] = normalizar_bool(no->tipo_dado, decl->filho[0]);
             }
         }
 
@@ -176,6 +194,9 @@ static void analisar_funcao(ContextoSemantico *ctx, NoAST *no) {
                  * pode nao existir ou ser outra variavel (sombreamento). */
                 erro_semantico(ctx, param->linha, param->coluna,
                                "valor padrao de '%s' deve ser constante", param->texto);
+            } else {
+                /* Antes da copia para a tabela, logo abaixo. */
+                param->filho[0] = normalizar_bool(param->tipo_dado, param->filho[0]);
             }
         }
         Simbolo *p = inserir_simbolo(ctx->tabela, param->texto, param->tipo_dado,
@@ -422,6 +443,8 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
                        !tipos_compativeis_atribuicao(ctx->retorno_funcao_atual, expr->tipo_dado)) {
                 erro_semantico(ctx, no->linha, no->coluna,
                                "tipo de retorno incompativel com a funcao");
+            } else {
+                no->filho[0] = normalizar_bool(ctx->retorno_funcao_atual, expr);
             }
         }
         break;
@@ -530,6 +553,8 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
                 } else if (!tipos_compativeis_atribuicao(alvo->tipo_dado, valor->tipo_dado)) {
                     erro_semantico(ctx, no->linha, no->coluna,
                                    "tipos incompativeis na atribuicao");
+                } else if (no->operador == OP_ATRIB) {
+                    no->filho[1] = normalizar_bool(alvo->tipo_dado, valor);
                 }
             }
         }

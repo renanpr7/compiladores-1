@@ -13,7 +13,7 @@ valor padrão.
 |-----|---|---|
 | `int` | `int` | |
 | `float` | `float` | |
-| `bool` | `int` | `true` → `1`, `false` → `0` |
+| `bool` | `int` | `true` → `1`, `false` → `0`; número guardado em `bool` vira `(valor != 0)` |
 | `void` | `void` | só como retorno |
 | `string s = "Joao";` | `char *s = "Joao";` | só literais, sem concatenação; sem valor, começa em `""` |
 | `const int N = 10;` | `const int N = 10;` | atribuir a um `const` é erro semântico |
@@ -155,7 +155,11 @@ O especificador (`%d`, `%f`, `%s`) depende do tipo da variável, então a tradu�
 possível depois da tabela de símbolos.
 
 `cin` lê `int`, `float` e `bool`. Como `string` só guarda literais, ler uma `string` é erro
-semântico.
+semântico. Para `bool`, a entrada deve ser `0` ou `1`: o valor lido não é normalizado.
+
+Na inicialização, na atribuição com `=`, no `return` de função `bool` e no valor padrão, um `int`
+ou `float` que vai para um `bool` é trocado por `(valor != 0)`, como faz o C++: `bool b = 5;` vira
+`int b = 1;` e `b = x;` vira `b = (x != 0);`.
 
 ## Cabeçalhos e qualificação
 
