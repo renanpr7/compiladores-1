@@ -161,6 +161,12 @@ static void analisar_funcao(ContextoSemantico *ctx, NoAST *no) {
             if (!tipos_compativeis_atribuicao(param->tipo_dado, param->filho[0]->tipo_dado)) {
                 erro_semantico(ctx, param->linha, param->coluna,
                                "tipos incompativeis na atribuicao");
+            } else if (param->filho[0]->tipo_dado != TIPO_NENHUM &&
+                       !eh_constante(param->filho[0])) {
+                /* O default e copiado para o ponto da chamada: um nome ali
+                 * pode nao existir ou ser outra variavel (sombreamento). */
+                erro_semantico(ctx, param->linha, param->coluna,
+                               "valor padrao de '%s' deve ser constante", param->texto);
             }
         }
         Simbolo *p = inserir_simbolo(ctx->tabela, param->texto, param->tipo_dado,

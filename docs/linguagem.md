@@ -130,6 +130,10 @@ soma(5)                      →   soma(5, 10)
 soma(5, 3)                   →   soma(5, 3)
 ```
 
+Como o valor é copiado para o ponto da chamada, ele só pode ter literais e operadores. Um nome ali
+pode não existir na chamada, ou ser outra variável que o sombreia, então `int f(int a, int b = a)`
+e `int h(int x = g)` são erro semântico.
+
 ## Entrada e saída
 
 Uma cadeia de `<<` vira um único `printf`. O `endl` acrescenta `\n` à string de formato.
