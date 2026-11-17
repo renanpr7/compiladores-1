@@ -580,6 +580,12 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
             erro_semantico(ctx, no->linha, no->coluna,
                            "identificador '%s' nao declarado", no->texto);
             no->tipo_dado = TIPO_NENHUM;
+        } else if (!s->eh_array) {
+            /* string vira char* e o resto e escalar: indexar gera C que trava
+             * ou que o gcc recusa. */
+            erro_semantico(ctx, no->linha, no->coluna,
+                           "'%s' nao e um array", no->texto);
+            no->tipo_dado = TIPO_NENHUM;
         } else {
             no->tipo_dado = s->tipo;
             no->eh_const = s->eh_const;
@@ -598,6 +604,12 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
         if (!s || s->categoria == CAT_FUNCAO) {
             erro_semantico(ctx, no->linha, no->coluna,
                            "identificador '%s' nao declarado", no->texto);
+            no->tipo_dado = TIPO_NENHUM;
+        } else if (s->eh_array) {
+            /* Sem indice o C ve o endereco do array: imprime lixo, nao aceita
+             * atribuicao e passa ponteiro onde se espera int. */
+            erro_semantico(ctx, no->linha, no->coluna,
+                           "array '%s' usado sem indice", no->texto);
             no->tipo_dado = TIPO_NENHUM;
         } else {
             no->tipo_dado = s->tipo;
