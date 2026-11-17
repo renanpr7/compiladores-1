@@ -15,7 +15,7 @@ valor padrão.
 | `float` | `float` | |
 | `bool` | `int` | `true` → `1`, `false` → `0` |
 | `void` | `void` | só como retorno |
-| `string s = "Joao";` | `char s[] = "Joao";` | só literais, sem concatenação |
+| `string s = "Joao";` | `char *s = "Joao";` | só literais, sem concatenação; sem valor, começa em `""` |
 | `const int N = 10;` | `const int N = 10;` | atribuir a um `const` é erro semântico |
 
 ## Estruturas de controle
@@ -77,6 +77,8 @@ v[0] = 10;
 ```
 
 Inicialização com chaves (`int v[3] = {1,2,3};`) e array como parâmetro não são suportados.
+Array de `string` é erro semântico: cada `string` precisa começar em `""`, e o C não tem como
+fazer isso para todas as posições de um array.
 
 ## Funções
 
@@ -133,6 +135,9 @@ Uma cadeia de `<<` vira um único `printf`. O `endl` acrescenta `\n` à string d
 
 O especificador (`%d`, `%f`, `%s`) depende do tipo da variável, então a tradução de E/S só é
 possível depois da tabela de símbolos.
+
+`cin` lê `int`, `float` e `bool`. Como `string` só guarda literais, ler uma `string` é erro
+semântico.
 
 ## Cabeçalhos e qualificação
 

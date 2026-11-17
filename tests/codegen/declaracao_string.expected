@@ -1,0 +1,10 @@
+#include <stdio.h>
+
+char *global = "";
+int main(void) {
+    char *a = "x", *b = "y";
+    char *vazia = "";
+    const char *fixa = "k";
+    printf("%s%s%s%s%s\n", a, b, vazia, fixa, global);
+    return 0;
+}

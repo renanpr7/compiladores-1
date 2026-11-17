@@ -71,6 +71,12 @@ static void analisar_declaracao(ContextoSemantico *ctx, NoAST *no) {
         decl->eh_const = no->eh_const;
 
         if (decl->filho[1]) {
+            /* string vira char* e precisa comecar em ""; o C nao tem como fazer
+             * isso para cada posicao de um array de tamanho qualquer. */
+            if (no->tipo_dado == TIPO_STRING) {
+                erro_semantico(ctx, decl->linha, decl->coluna,
+                               "array de string nao suportado '%s'", decl->texto);
+            }
             visitar_no(ctx, decl->filho[1]);
             if (decl->filho[1]->tipo_dado != TIPO_NENHUM &&
                 decl->filho[1]->tipo_dado != TIPO_INT) {
@@ -416,8 +422,23 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
         break;
 
     case NO_COUT:
+        visitar_lista(ctx, no->filho[0]);
+        break;
+
     case NO_CIN:
         visitar_lista(ctx, no->filho[0]);
+        /* string so guarda literal: o C gerado (char*) nao tem onde gravar a leitura. */
+        for (const NoAST *alvo = no->filho[0]; alvo != NULL; alvo = alvo->proximo) {
+            if (alvo->eh_const) {
+                erro_semantico(ctx, alvo->linha, alvo->coluna,
+                               "leitura em variavel constante '%s'",
+                               alvo->texto ? alvo->texto : "");
+            } else if (alvo->tipo_dado == TIPO_STRING) {
+                erro_semantico(ctx, alvo->linha, alvo->coluna,
+                               "cin nao suporta variavel do tipo string '%s'",
+                               alvo->texto ? alvo->texto : "");
+            }
+        }
         break;
 
     case NO_ATRIBUICAO: {
