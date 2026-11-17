@@ -15,6 +15,10 @@
 #   tac/         codigo intermediario    ./compilador -i
 #   codegen/     codigo C gerado         ./compilador
 #   execucao/    o C gerado compila e roda com gcc
+#
+# Nos casos fora de "erros" em parser/, semantica/, tac/ e codegen/, o C
+# gerado (./compilador sem flag) tambem passa pelo gcc. Erro do gcc reprova
+# o caso; aviso nao, porque vem do proprio programa de teste.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -64,8 +68,31 @@ run_test() {
         echo -e "${RED}FAIL${NC} $name ${DIM}(exit $got_exit, esperado $want_exit)${NC}"
         FAIL=$((FAIL + 1)); return
     fi
+    # lexer/ e ast/ ficam de fora: os casos de ast/ usam variavel nao declarada
+    case "$name" in
+        lexer/*|ast/*|*/erros/*) ;;
+        *) c_compila "$cpp_file" "$name" || { FAIL=$((FAIL + 1)); return; } ;;
+    esac
     echo -e "${GREEN}PASS${NC} $name"
     PASS=$((PASS + 1))
+}
+
+# Gera o C do caso e confere se o gcc aceita; so erro reprova, aviso nao
+c_compila() {
+    local cpp_file="$1" name="$2"
+    local tmp; tmp=$(mktemp -d)
+
+    if ! "${RUNNER_PREFIX[@]}" "$COMPILADOR" < "$cpp_file" > "$tmp/saida.c" 2>"$tmp/erro"; then
+        echo -e "${RED}FAIL${NC} $name ${DIM}(compilador falhou ao gerar o C)${NC}"
+        sed 's/^/      /' "$tmp/erro" | head -5
+        rm -rf "$tmp"; return 1
+    fi
+    if ! gcc -std=c99 -fsyntax-only "$tmp/saida.c" 2>"$tmp/gcc.log"; then
+        echo -e "${RED}FAIL${NC} $name ${DIM}(gcc rejeitou o C gerado)${NC}"
+        sed 's/^/      /' "$tmp/gcc.log" | head -8
+        rm -rf "$tmp"; return 1
+    fi
+    rm -rf "$tmp"
 }
 
 # Compila o C gerado e confere o que o programa imprime ao rodar
