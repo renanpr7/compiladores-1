@@ -76,7 +76,7 @@ static int eh_constante(const NoAST *no) {
 /* bool vira int no C: sem normalizar, bool b = 5 guarda 5, imprime 5 e
  * falha em b == true. Trocar o valor por (valor != 0) devolve o 0/1 do
  * C++; com literal o folding reduz isso a 0 ou 1. Preserva o encadeamento
- * por 'proximo' para servir tambem a argumentos. */
+ * por 'proximo' do no original. */
 static NoAST *normalizar_bool(TipoDado destino, NoAST *valor) {
     if (destino != TIPO_BOOL || !valor || !eh_numerico(valor->tipo_dado)) return valor;
     NoAST *proximo = valor->proximo;
@@ -239,6 +239,9 @@ static void analisar_chamada(ContextoSemantico *ctx, NoAST *no) {
     for (NoAST *arg = no->filho[0]; arg != NULL; arg = arg->proximo) {
         ++num_args;
     }
+    /* Quantos argumentos o programa escreveu, antes de os defaults serem
+     * anexados: a busca final em atualizar_nomes_chamadas usa esse numero. */
+    no->valor_int = num_args;
 
     TipoDado *tipos_args = NULL;
     if (num_args > 0) {
@@ -322,8 +325,11 @@ static void analisar_chamada(ContextoSemantico *ctx, NoAST *no) {
 static void atualizar_nomes_chamadas(ContextoSemantico *ctx, NoAST *no) {
     for (NoAST *atual = no; atual != NULL; atual = atual->proximo) {
         if (atual->tipo == NO_CHAMADA) {
+            /* Defaults ja anexados nao contam: g(1) que virou g(1, 5) ainda e
+             * ambigua entre g(int) e g(int, int = 5). */
             int quantidade = 0;
-            for (NoAST *arg = atual->filho[0]; arg != NULL; arg = arg->proximo)
+            for (NoAST *arg = atual->filho[0]; arg != NULL && quantidade < atual->valor_int;
+                 arg = arg->proximo)
                 ++quantidade;
 
             TipoDado *tipos = NULL;
@@ -334,7 +340,8 @@ static void atualizar_nomes_chamadas(ContextoSemantico *ctx, NoAST *no) {
                     exit(EXIT_FAILURE);
                 }
                 int i = 0;
-                for (NoAST *arg = atual->filho[0]; arg != NULL; arg = arg->proximo)
+                for (NoAST *arg = atual->filho[0]; arg != NULL && i < quantidade;
+                     arg = arg->proximo)
                     tipos[i++] = arg->tipo_dado;
             }
 
