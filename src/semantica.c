@@ -416,8 +416,19 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
         break;
 
     case NO_COUT:
+        visitar_lista(ctx, no->filho[0]);
+        break;
+
     case NO_CIN:
         visitar_lista(ctx, no->filho[0]);
+        /* string so guarda literal: o C gerado (char*) nao tem onde gravar a leitura. */
+        for (const NoAST *alvo = no->filho[0]; alvo != NULL; alvo = alvo->proximo) {
+            if (alvo->tipo_dado == TIPO_STRING) {
+                erro_semantico(ctx, alvo->linha, alvo->coluna,
+                               "cin nao suporta variavel do tipo string '%s'",
+                               alvo->texto ? alvo->texto : "");
+            }
+        }
         break;
 
     case NO_ATRIBUICAO: {
