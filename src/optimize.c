@@ -31,6 +31,17 @@ static void reportar_divisao_por_zero(int linha, int coluna) {
     emit_diagnostic("Erro semantico", linha, coluna, "divisao por zero");
 }
 
+/* O tamanho so vira numero depois do folding (int v[2 - 5]), entao a
+ * checagem mora aqui, junto da divisao por zero. */
+static void validar_tamanho_array(const NoAST *decl) {
+    const NoAST *tamanho = decl->filho[1];
+    if (tamanho && tamanho->tipo == NO_NUM && tamanho->valor_int < 0) {
+        erros_otimizacao++;
+        emit_diagnostic("Erro semantico", decl->linha, decl->coluna,
+                        "tamanho negativo no array '%s'", decl->texto ? decl->texto : "");
+    }
+}
+
 static void limpar_filhos(NoAST *no) {
     for (int i = 0; i < AST_MAX_FILHOS; ++i) {
         if (no->filho[i]) {
@@ -216,6 +227,8 @@ static void otimizar_no(NoAST *no) {
         otimizar_op_binario(no);
     } else if (no->tipo == NO_OP_UNARIO) {
         otimizar_op_unario(no);
+    } else if (no->tipo == NO_DECLARADOR) {
+        validar_tamanho_array(no);
     }
 }
 
