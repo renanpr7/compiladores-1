@@ -419,6 +419,11 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
             erro_semantico(ctx, no->linha, no->coluna,
                            "atribuicao para variavel constante '%s'",
                            alvo->texto ? alvo->texto : "");
+        } else if (alvo && alvo->tipo_dado != TIPO_NENHUM && !eh_numerico(alvo->tipo_dado)) {
+            /* Em string anda o ponteiro; em bool sai do 0/1. O g++ recusa os dois. */
+            erro_semantico(ctx, no->linha, no->coluna,
+                           "tipos incompativeis na operacao");
+            no->tipo_dado = TIPO_NENHUM;
         }
         break;
     }
