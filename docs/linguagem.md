@@ -93,6 +93,9 @@ fazer isso para todas as posições de um array.
 
 ## Funções
 
+`main` só é aceita como `int main()`: `void main`, `main` com parâmetros ou sobrecarregada são erro
+semântico.
+
 ### Sobrecarga
 
 C não permite duas funções com o mesmo nome. O compilador renomeia pelos tipos dos parâmetros:

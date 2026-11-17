@@ -143,11 +143,20 @@ static void analisar_declaracao(ContextoSemantico *ctx, NoAST *no) {
 }
 
 static void analisar_funcao(ContextoSemantico *ctx, NoAST *no) {
-    Simbolo *f = inserir_funcao(ctx->tabela, no->texto, no->tipo_dado,
-                                no->filho[0], no, no->linha, no->coluna);
-    if (!f) {
+    Simbolo *f = NULL;
+    if (strcmp(no->texto, "main") == 0 &&
+        (no->tipo_dado != TIPO_INT || no->filho[0] != NULL)) {
+        /* Sobrecarregar main renomearia para main_v/main_i e o C ficaria sem
+         * main; void main o g++ recusa. Nao entra na tabela. */
         erro_semantico(ctx, no->linha, no->coluna,
-                       "redeclaracao de '%s' no mesmo escopo", no->texto);
+                       "'main' deve ser declarada como 'int main()'");
+    } else {
+        f = inserir_funcao(ctx->tabela, no->texto, no->tipo_dado,
+                           no->filho[0], no, no->linha, no->coluna);
+        if (!f) {
+            erro_semantico(ctx, no->linha, no->coluna,
+                           "redeclaracao de '%s' no mesmo escopo", no->texto);
+        }
     }
 
     TipoDado retorno_anterior = ctx->retorno_funcao_atual;
