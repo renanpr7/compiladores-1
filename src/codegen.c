@@ -173,13 +173,16 @@ static void codegen_expressao(ContextoCodegen *ctx, const NoAST *no) {
 }
 
 static void codegen_declaracao_inline(ContextoCodegen *ctx, const NoAST *no) {
+    /* Em C o '*' vale so para o nome ao lado: "char* a, b" faz de b um char.
+     * Por isso string emite "char" uma vez e o '*' antes de cada nome. */
+    int eh_string = no->tipo_dado == TIPO_STRING;
     if (no->eh_const) {
         fprintf(ctx->out, "const ");
     }
-    fprintf(ctx->out, "%s ", tipo_para_c(no->tipo_dado));
+    fprintf(ctx->out, "%s ", eh_string ? "char" : tipo_para_c(no->tipo_dado));
 
     for (const NoAST *decl = no->filho[0]; decl != NULL; decl = decl->proximo) {
-        fprintf(ctx->out, "%s", decl->texto ? decl->texto : "");
+        fprintf(ctx->out, "%s%s", eh_string ? "*" : "", decl->texto ? decl->texto : "");
         if (decl->filho[1]) {
             fprintf(ctx->out, "[");
             codegen_expressao(ctx, decl->filho[1]);
@@ -188,6 +191,9 @@ static void codegen_declaracao_inline(ContextoCodegen *ctx, const NoAST *no) {
         if (decl->filho[0]) {
             fprintf(ctx->out, " = ");
             codegen_expressao(ctx, decl->filho[0]);
+        } else if (eh_string && !decl->filho[1]) {
+            /* Sem valor, o ponteiro ficaria solto e o printf("%s") travaria. */
+            fprintf(ctx->out, " = \"\"");
         }
         if (decl->proximo) {
             fprintf(ctx->out, ", ");

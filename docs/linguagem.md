@@ -15,7 +15,7 @@ valor padrão.
 | `float` | `float` | |
 | `bool` | `int` | `true` → `1`, `false` → `0` |
 | `void` | `void` | só como retorno |
-| `string s = "Joao";` | `char s[] = "Joao";` | só literais, sem concatenação |
+| `string s = "Joao";` | `char *s = "Joao";` | só literais, sem concatenação; sem valor, começa em `""` |
 | `const int N = 10;` | `const int N = 10;` | atribuir a um `const` é erro semântico |
 
 ## Estruturas de controle
