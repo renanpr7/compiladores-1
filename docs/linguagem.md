@@ -13,7 +13,7 @@ valor padrão.
 |-----|---|---|
 | `int` | `int` | |
 | `float` | `float` | |
-| `bool` | `int` | `true` → `1`, `false` → `0` |
+| `bool` | `int` | `true` → `1`, `false` → `0`; número guardado em `bool` vira `(valor != 0)` |
 | `void` | `void` | só como retorno |
 | `string s = "Joao";` | `char *s = "Joao";` | só literais, sem concatenação; sem valor, começa em `""` |
 | `const int N = 10;` | `const int N = 10;` | atribuir a um `const` é erro semântico |
@@ -45,6 +45,17 @@ int x = 1;
 ```
 
 Usar variável não declarada, ou declarar duas vezes no mesmo escopo, é erro semântico.
+
+Fora de função, o valor inicial e o tamanho de array só podem ter literais e operadores, como o C
+exige. Identificador (mesmo `const`), chamada, índice ou atribuição ali é erro semântico:
+
+```cpp
+int a = 1;
+int b = a + 1;        // erro: valor inicial da variavel global 'b' deve ser constante
+const int N = 3;
+int v[N];             // erro: tamanho do array global 'v' deve ser constante
+int w[2 * 4];         // aceito
+```
 
 ## Operadores
 
@@ -81,6 +92,9 @@ Array de `string` é erro semântico: cada `string` precisa começar em `""`, e 
 fazer isso para todas as posições de um array.
 
 ## Funções
+
+`main` só é aceita como `int main()`: `void main`, `main` com parâmetros ou sobrecarregada são erro
+semântico.
 
 ### Sobrecarga
 
@@ -119,6 +133,10 @@ soma(5)                      →   soma(5, 10)
 soma(5, 3)                   →   soma(5, 3)
 ```
 
+Como o valor é copiado para o ponto da chamada, ele só pode ter literais e operadores. Um nome ali
+pode não existir na chamada, ou ser outra variável que o sombreia, então `int f(int a, int b = a)`
+e `int h(int x = g)` são erro semântico.
+
 ## Entrada e saída
 
 Uma cadeia de `<<` vira um único `printf`. O `endl` acrescenta `\n` à string de formato.
@@ -137,7 +155,11 @@ O especificador (`%d`, `%f`, `%s`) depende do tipo da variável, então a tradu�
 possível depois da tabela de símbolos.
 
 `cin` lê `int`, `float` e `bool`. Como `string` só guarda literais, ler uma `string` é erro
-semântico.
+semântico. Para `bool`, a entrada deve ser `0` ou `1`: o valor lido não é normalizado.
+
+Na inicialização, na atribuição com `=`, no `return` de função `bool` e no valor padrão, um `int`
+ou `float` que vai para um `bool` é trocado por `(valor != 0)`, como faz o C++: `bool b = 5;` vira
+`int b = 1;` e `b = x;` vira `b = (x != 0);`.
 
 ## Cabeçalhos e qualificação
 

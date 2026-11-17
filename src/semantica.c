@@ -49,6 +49,46 @@ static int tipos_compativeis_atribuicao(TipoDado destino, TipoDado origem) {
     return eh_escalar_condicao(destino) && eh_escalar_condicao(origem);
 }
 
+/* Expressao feita so de literais e operadores. E o que o C aceita fora de
+ * funcao, e o unico valor padrao que nao depende de quem esta visivel no
+ * ponto da chamada. Identificador (mesmo const), chamada, indice e
+ * atribuicao ficam de fora. */
+static int eh_constante(const NoAST *no) {
+    if (!no) return 1;
+    switch (no->tipo) {
+    case NO_NUM:
+    case NO_FLOAT:
+    case NO_BOOL:
+    case NO_STRING:
+        return 1;
+    case NO_OP_BINARIO:
+    case NO_OP_UNARIO:
+    case NO_TERNARIO:
+        for (int i = 0; i < AST_MAX_FILHOS; ++i) {
+            if (!eh_constante(no->filho[i])) return 0;
+        }
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+/* bool vira int no C: sem normalizar, bool b = 5 guarda 5, imprime 5 e
+ * falha em b == true. Trocar o valor por (valor != 0) devolve o 0/1 do
+ * C++; com literal o folding reduz isso a 0 ou 1. Preserva o encadeamento
+ * por 'proximo' do no original. */
+static NoAST *normalizar_bool(TipoDado destino, NoAST *valor) {
+    if (destino != TIPO_BOOL || !valor || !eh_numerico(valor->tipo_dado)) return valor;
+    NoAST *proximo = valor->proximo;
+    valor->proximo = NULL;
+    NoAST *zero = criarNoNum(0, valor->linha, valor->coluna);
+    zero->tipo_dado = TIPO_INT;
+    NoAST *comparacao = criarNoOp(OP_DIFERENTE, valor, zero, valor->linha, valor->coluna);
+    comparacao->tipo_dado = TIPO_BOOL;
+    comparacao->proximo = proximo;
+    return comparacao;
+}
+
 static void validar_condicao(ContextoSemantico *ctx, const NoAST *cmd, const NoAST *cond) {
     if (!cond || cond->tipo_dado == TIPO_NENHUM) return;
     if (!eh_escalar_condicao(cond->tipo_dado)) {
@@ -66,6 +106,8 @@ static void visitar_lista(ContextoSemantico *ctx, NoAST *lista) {
 }
 
 static void analisar_declaracao(ContextoSemantico *ctx, NoAST *no) {
+    /* No escopo global o C so aceita valor e tamanho constantes. */
+    int global = ctx->tabela->atual == ctx->tabela->global;
     for (NoAST *decl = no->filho[0]; decl != NULL; decl = decl->proximo) {
         decl->tipo_dado = no->tipo_dado;
         decl->eh_const = no->eh_const;
@@ -82,6 +124,10 @@ static void analisar_declaracao(ContextoSemantico *ctx, NoAST *no) {
                 decl->filho[1]->tipo_dado != TIPO_INT) {
                 erro_semantico(ctx, decl->linha, decl->coluna,
                                "indice de array deve ser do tipo int");
+            } else if (global && decl->filho[1]->tipo_dado != TIPO_NENHUM &&
+                       !eh_constante(decl->filho[1])) {
+                erro_semantico(ctx, decl->linha, decl->coluna,
+                               "tamanho do array global '%s' deve ser constante", decl->texto);
             }
         }
         if (decl->filho[0]) {
@@ -89,6 +135,13 @@ static void analisar_declaracao(ContextoSemantico *ctx, NoAST *no) {
             if (!tipos_compativeis_atribuicao(no->tipo_dado, decl->filho[0]->tipo_dado)) {
                 erro_semantico(ctx, decl->linha, decl->coluna,
                                "tipos incompativeis na atribuicao");
+            } else if (global && decl->filho[0]->tipo_dado != TIPO_NENHUM &&
+                       !eh_constante(decl->filho[0])) {
+                erro_semantico(ctx, decl->linha, decl->coluna,
+                               "valor inicial da variavel global '%s' deve ser constante",
+                               decl->texto);
+            } else {
+                decl->filho[0] = normalizar_bool(no->tipo_dado, decl->filho[0]);
             }
         }
 
@@ -108,11 +161,20 @@ static void analisar_declaracao(ContextoSemantico *ctx, NoAST *no) {
 }
 
 static void analisar_funcao(ContextoSemantico *ctx, NoAST *no) {
-    Simbolo *f = inserir_funcao(ctx->tabela, no->texto, no->tipo_dado,
-                                no->filho[0], no, no->linha, no->coluna);
-    if (!f) {
+    Simbolo *f = NULL;
+    if (strcmp(no->texto, "main") == 0 &&
+        (no->tipo_dado != TIPO_INT || no->filho[0] != NULL)) {
+        /* Sobrecarregar main renomearia para main_v/main_i e o C ficaria sem
+         * main; void main o g++ recusa. Nao entra na tabela. */
         erro_semantico(ctx, no->linha, no->coluna,
-                       "redeclaracao de '%s' no mesmo escopo", no->texto);
+                       "'main' deve ser declarada como 'int main()'");
+    } else {
+        f = inserir_funcao(ctx->tabela, no->texto, no->tipo_dado,
+                           no->filho[0], no, no->linha, no->coluna);
+        if (!f) {
+            erro_semantico(ctx, no->linha, no->coluna,
+                           "redeclaracao de '%s' no mesmo escopo", no->texto);
+        }
     }
 
     TipoDado retorno_anterior = ctx->retorno_funcao_atual;
@@ -126,6 +188,15 @@ static void analisar_funcao(ContextoSemantico *ctx, NoAST *no) {
             if (!tipos_compativeis_atribuicao(param->tipo_dado, param->filho[0]->tipo_dado)) {
                 erro_semantico(ctx, param->linha, param->coluna,
                                "tipos incompativeis na atribuicao");
+            } else if (param->filho[0]->tipo_dado != TIPO_NENHUM &&
+                       !eh_constante(param->filho[0])) {
+                /* O default e copiado para o ponto da chamada: um nome ali
+                 * pode nao existir ou ser outra variavel (sombreamento). */
+                erro_semantico(ctx, param->linha, param->coluna,
+                               "valor padrao de '%s' deve ser constante", param->texto);
+            } else {
+                /* Antes da copia para a tabela, logo abaixo. */
+                param->filho[0] = normalizar_bool(param->tipo_dado, param->filho[0]);
             }
         }
         Simbolo *p = inserir_simbolo(ctx->tabela, param->texto, param->tipo_dado,
@@ -168,6 +239,9 @@ static void analisar_chamada(ContextoSemantico *ctx, NoAST *no) {
     for (NoAST *arg = no->filho[0]; arg != NULL; arg = arg->proximo) {
         ++num_args;
     }
+    /* Quantos argumentos o programa escreveu, antes de os defaults serem
+     * anexados: a busca final em atualizar_nomes_chamadas usa esse numero. */
+    no->valor_int = num_args;
 
     TipoDado *tipos_args = NULL;
     if (num_args > 0) {
@@ -251,8 +325,11 @@ static void analisar_chamada(ContextoSemantico *ctx, NoAST *no) {
 static void atualizar_nomes_chamadas(ContextoSemantico *ctx, NoAST *no) {
     for (NoAST *atual = no; atual != NULL; atual = atual->proximo) {
         if (atual->tipo == NO_CHAMADA) {
+            /* Defaults ja anexados nao contam: g(1) que virou g(1, 5) ainda e
+             * ambigua entre g(int) e g(int, int = 5). */
             int quantidade = 0;
-            for (NoAST *arg = atual->filho[0]; arg != NULL; arg = arg->proximo)
+            for (NoAST *arg = atual->filho[0]; arg != NULL && quantidade < atual->valor_int;
+                 arg = arg->proximo)
                 ++quantidade;
 
             TipoDado *tipos = NULL;
@@ -263,7 +340,8 @@ static void atualizar_nomes_chamadas(ContextoSemantico *ctx, NoAST *no) {
                     exit(EXIT_FAILURE);
                 }
                 int i = 0;
-                for (NoAST *arg = atual->filho[0]; arg != NULL; arg = arg->proximo)
+                for (NoAST *arg = atual->filho[0]; arg != NULL && i < quantidade;
+                     arg = arg->proximo)
                     tipos[i++] = arg->tipo_dado;
             }
 
@@ -275,6 +353,13 @@ static void atualizar_nomes_chamadas(ContextoSemantico *ctx, NoAST *no) {
                 char *nome = copiar_texto_semantica(funcao->nome_mangled);
                 free(atual->texto);
                 atual->texto = nome;
+            } else if (status == BUSCA_FUNC_AMBIGUA && atual->tipo_dado != TIPO_NENHUM) {
+                /* A sobrecarga declarada depois tornou a chamada ambigua: sem
+                 * nome novo ela continuaria f(...), que nao existe no C.
+                 * Chamada ja recusada na primeira visita (TIPO_NENHUM) nao
+                 * repete o erro. */
+                erro_semantico(ctx, atual->linha, atual->coluna,
+                               "chamada ambigua para funcao '%s'", atual->texto);
             }
             free(tipos);
         }
@@ -365,6 +450,8 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
                        !tipos_compativeis_atribuicao(ctx->retorno_funcao_atual, expr->tipo_dado)) {
                 erro_semantico(ctx, no->linha, no->coluna,
                                "tipo de retorno incompativel com a funcao");
+            } else {
+                no->filho[0] = normalizar_bool(ctx->retorno_funcao_atual, expr);
             }
         }
         break;
@@ -378,6 +465,11 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
             erro_semantico(ctx, no->linha, no->coluna,
                            "atribuicao para variavel constante '%s'",
                            alvo->texto ? alvo->texto : "");
+        } else if (alvo && alvo->tipo_dado != TIPO_NENHUM && !eh_numerico(alvo->tipo_dado)) {
+            /* Em string anda o ponteiro; em bool sai do 0/1. O g++ recusa os dois. */
+            erro_semantico(ctx, no->linha, no->coluna,
+                           "tipos incompativeis na operacao");
+            no->tipo_dado = TIPO_NENHUM;
         }
         break;
     }
@@ -423,6 +515,14 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
 
     case NO_COUT:
         visitar_lista(ctx, no->filho[0]);
+        /* Funcao void nao tem valor: printf("%d", g()) o gcc recusa. */
+        for (const NoAST *item = no->filho[0]; item != NULL; item = item->proximo) {
+            if (item->tipo_dado == TIPO_VOID) {
+                erro_semantico(ctx, item->linha, item->coluna,
+                               "cout de funcao void '%s'",
+                               item->texto ? item->texto : "");
+            }
+        }
         break;
 
     case NO_CIN:
@@ -460,6 +560,8 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
                 } else if (!tipos_compativeis_atribuicao(alvo->tipo_dado, valor->tipo_dado)) {
                     erro_semantico(ctx, no->linha, no->coluna,
                                    "tipos incompativeis na atribuicao");
+                } else if (no->operador == OP_ATRIB) {
+                    no->filho[1] = normalizar_bool(alvo->tipo_dado, valor);
                 }
             }
         }
@@ -580,6 +682,12 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
             erro_semantico(ctx, no->linha, no->coluna,
                            "identificador '%s' nao declarado", no->texto);
             no->tipo_dado = TIPO_NENHUM;
+        } else if (!s->eh_array) {
+            /* string vira char* e o resto e escalar: indexar gera C que trava
+             * ou que o gcc recusa. */
+            erro_semantico(ctx, no->linha, no->coluna,
+                           "'%s' nao e um array", no->texto);
+            no->tipo_dado = TIPO_NENHUM;
         } else {
             no->tipo_dado = s->tipo;
             no->eh_const = s->eh_const;
@@ -598,6 +706,12 @@ static void visitar_no(ContextoSemantico *ctx, NoAST *no) {
         if (!s || s->categoria == CAT_FUNCAO) {
             erro_semantico(ctx, no->linha, no->coluna,
                            "identificador '%s' nao declarado", no->texto);
+            no->tipo_dado = TIPO_NENHUM;
+        } else if (s->eh_array) {
+            /* Sem indice o C ve o endereco do array: imprime lixo, nao aceita
+             * atribuicao e passa ponteiro onde se espera int. */
+            erro_semantico(ctx, no->linha, no->coluna,
+                           "array '%s' usado sem indice", no->texto);
             no->tipo_dado = TIPO_NENHUM;
         } else {
             no->tipo_dado = s->tipo;
