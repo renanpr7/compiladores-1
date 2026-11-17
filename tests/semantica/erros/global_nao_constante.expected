@@ -1,0 +1,6 @@
+Erro semantico na linha 4, coluna 5: valor inicial da variavel global 'b' deve ser constante
+Erro semantico na linha 6, coluna 5: tamanho do array global 'v' deve ser constante
+Erro semantico na linha 7, coluna 5: valor inicial da variavel global 'x' deve ser constante
+Erro semantico na linha 8, coluna 5: valor inicial da variavel global 't' deve ser constante
+Erro semantico na linha 10, coluna 8: valor inicial da variavel global 'u' deve ser constante
+Erro semantico na linha 12, coluna 5: tamanho do array global 'w' deve ser constante

@@ -49,6 +49,30 @@ static int tipos_compativeis_atribuicao(TipoDado destino, TipoDado origem) {
     return eh_escalar_condicao(destino) && eh_escalar_condicao(origem);
 }
 
+/* Expressao feita so de literais e operadores. E o que o C aceita fora de
+ * funcao, e o unico valor padrao que nao depende de quem esta visivel no
+ * ponto da chamada. Identificador (mesmo const), chamada, indice e
+ * atribuicao ficam de fora. */
+static int eh_constante(const NoAST *no) {
+    if (!no) return 1;
+    switch (no->tipo) {
+    case NO_NUM:
+    case NO_FLOAT:
+    case NO_BOOL:
+    case NO_STRING:
+        return 1;
+    case NO_OP_BINARIO:
+    case NO_OP_UNARIO:
+    case NO_TERNARIO:
+        for (int i = 0; i < AST_MAX_FILHOS; ++i) {
+            if (!eh_constante(no->filho[i])) return 0;
+        }
+        return 1;
+    default:
+        return 0;
+    }
+}
+
 static void validar_condicao(ContextoSemantico *ctx, const NoAST *cmd, const NoAST *cond) {
     if (!cond || cond->tipo_dado == TIPO_NENHUM) return;
     if (!eh_escalar_condicao(cond->tipo_dado)) {
@@ -66,6 +90,8 @@ static void visitar_lista(ContextoSemantico *ctx, NoAST *lista) {
 }
 
 static void analisar_declaracao(ContextoSemantico *ctx, NoAST *no) {
+    /* No escopo global o C so aceita valor e tamanho constantes. */
+    int global = ctx->tabela->atual == ctx->tabela->global;
     for (NoAST *decl = no->filho[0]; decl != NULL; decl = decl->proximo) {
         decl->tipo_dado = no->tipo_dado;
         decl->eh_const = no->eh_const;
@@ -82,6 +108,10 @@ static void analisar_declaracao(ContextoSemantico *ctx, NoAST *no) {
                 decl->filho[1]->tipo_dado != TIPO_INT) {
                 erro_semantico(ctx, decl->linha, decl->coluna,
                                "indice de array deve ser do tipo int");
+            } else if (global && decl->filho[1]->tipo_dado != TIPO_NENHUM &&
+                       !eh_constante(decl->filho[1])) {
+                erro_semantico(ctx, decl->linha, decl->coluna,
+                               "tamanho do array global '%s' deve ser constante", decl->texto);
             }
         }
         if (decl->filho[0]) {
@@ -89,6 +119,11 @@ static void analisar_declaracao(ContextoSemantico *ctx, NoAST *no) {
             if (!tipos_compativeis_atribuicao(no->tipo_dado, decl->filho[0]->tipo_dado)) {
                 erro_semantico(ctx, decl->linha, decl->coluna,
                                "tipos incompativeis na atribuicao");
+            } else if (global && decl->filho[0]->tipo_dado != TIPO_NENHUM &&
+                       !eh_constante(decl->filho[0])) {
+                erro_semantico(ctx, decl->linha, decl->coluna,
+                               "valor inicial da variavel global '%s' deve ser constante",
+                               decl->texto);
             }
         }
 

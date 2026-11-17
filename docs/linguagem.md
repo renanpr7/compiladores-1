@@ -46,6 +46,17 @@ int x = 1;
 
 Usar variável não declarada, ou declarar duas vezes no mesmo escopo, é erro semântico.
 
+Fora de função, o valor inicial e o tamanho de array só podem ter literais e operadores, como o C
+exige. Identificador (mesmo `const`), chamada, índice ou atribuição ali é erro semântico:
+
+```cpp
+int a = 1;
+int b = a + 1;        // erro: valor inicial da variavel global 'b' deve ser constante
+const int N = 3;
+int v[N];             // erro: tamanho do array global 'v' deve ser constante
+int w[2 * 4];         // aceito
+```
+
 ## Operadores
 
 | Categoria | Operadores |
