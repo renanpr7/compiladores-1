@@ -191,7 +191,7 @@ static void codegen_declaracao_inline(ContextoCodegen *ctx, const NoAST *no) {
         if (decl->filho[0]) {
             fprintf(ctx->out, " = ");
             codegen_expressao(ctx, decl->filho[0]);
-        } else if (eh_string && !decl->filho[1]) {
+        } else if (eh_string) {
             /* Sem valor, o ponteiro ficaria solto e o printf("%s") travaria. */
             fprintf(ctx->out, " = \"\"");
         }

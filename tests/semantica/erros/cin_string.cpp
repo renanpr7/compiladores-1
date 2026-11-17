@@ -5,9 +5,9 @@ void ler(string &r) {
 int main() {
     int idade;
     string nome;
-    string apelidos[3];
+    string apelido;
     cin >> idade;
     cin >> nome;
-    cin >> idade >> apelidos[0];
+    cin >> idade >> apelido;
     return 0;
 }

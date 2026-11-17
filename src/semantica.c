@@ -71,6 +71,12 @@ static void analisar_declaracao(ContextoSemantico *ctx, NoAST *no) {
         decl->eh_const = no->eh_const;
 
         if (decl->filho[1]) {
+            /* string vira char* e precisa comecar em ""; o C nao tem como fazer
+             * isso para cada posicao de um array de tamanho qualquer. */
+            if (no->tipo_dado == TIPO_STRING) {
+                erro_semantico(ctx, decl->linha, decl->coluna,
+                               "array de string nao suportado '%s'", decl->texto);
+            }
             visitar_no(ctx, decl->filho[1]);
             if (decl->filho[1]->tipo_dado != TIPO_NENHUM &&
                 decl->filho[1]->tipo_dado != TIPO_INT) {

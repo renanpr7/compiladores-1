@@ -77,6 +77,8 @@ v[0] = 10;
 ```
 
 Inicialização com chaves (`int v[3] = {1,2,3};`) e array como parâmetro não são suportados.
+Array de `string` é erro semântico: cada `string` precisa começar em `""`, e o C não tem como
+fazer isso para todas as posições de um array.
 
 ## Funções
 
