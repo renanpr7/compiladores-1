@@ -69,7 +69,9 @@ casos dentro de uma pasta `erros/` devem terminar com 1, os demais com 0.
 | `cli/` | flags, códigos de saída e limite de diagnósticos | `tests/cli/run_cli_tests.sh` |
 
 `execucao/` é a suíte que prova o compilador de ponta a ponta: pega o C emitido, compila com `gcc`
-e compara o que o programa imprime.
+e compara o que o programa imprime. Nos casos fora de `erros/` em `parser/`, `semantica/`, `tac/`
+e `codegen/`, o runner também passa o C emitido pelo `gcc`, sem rodar: o caso falha se o `gcc`
+der erro, mas aviso não reprova.
 
 Toda issue entrega os próprios testes. `make test` verde é critério de aceite.
 
