@@ -183,13 +183,14 @@ static void codegen_declaracao_inline(ContextoCodegen *ctx, const NoAST *no) {
     /* Em C o '*' vale so para o nome ao lado: "char* a, b" faz de b um char.
      * Por isso string emite "char" uma vez e o '*' antes de cada nome. */
     int eh_string = no->tipo_dado == TIPO_STRING;
-    if (no->eh_const) {
+    if (no->eh_const && !eh_string) {
         fprintf(ctx->out, "const ");
     }
     fprintf(ctx->out, "%s ", eh_string ? "char" : tipo_para_c(no->tipo_dado));
 
     for (const NoAST *decl = no->filho[0]; decl != NULL; decl = decl->proximo) {
-        fprintf(ctx->out, "%s%s", eh_string ? "*" : "", decl->texto ? decl->texto : "");
+        const char *prefixo = eh_string ? (no->eh_const ? "*const " : "*") : "";
+        fprintf(ctx->out, "%s%s", prefixo, decl->texto ? decl->texto : "");
         if (decl->filho[1]) {
             fprintf(ctx->out, "[");
             codegen_expressao(ctx, decl->filho[1]);
