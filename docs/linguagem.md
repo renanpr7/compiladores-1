@@ -139,7 +139,11 @@ e `int h(int x = g)` são erro semântico.
 
 ## Entrada e saída
 
-Uma cadeia de `<<` vira um único `printf`. O `endl` acrescenta `\n` à string de formato.
+Uma cadeia de `<<` vira um único `printf` e o `endl` acrescenta `\n` à string de formato — exceto
+quando algum item contém chamada de função ou atribuição, caso em que cada item gera seu próprio
+`printf` (levando o `\n` do `endl` seguinte) para preservar a ordem de avaliação. Da mesma forma, uma
+cadeia de `>>` vira um único `scanf`, exceto quando algum alvo é elemento de array, emitindo um
+`scanf` por alvo.
 
 | C++ | C |
 |-----|---|

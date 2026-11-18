@@ -255,7 +255,47 @@ static const char *formato_io(TipoDado tipo) {
     }
 }
 
+static int tem_chamada_ou_atribuicao(const NoAST *no) {
+    if (!no) return 0;
+    if (no->tipo == NO_CHAMADA || no->tipo == NO_ATRIBUICAO || no->tipo == NO_INC_DEC) {
+        return 1;
+    }
+    for (int i = 0; i < AST_MAX_FILHOS; ++i) {
+        if (tem_chamada_ou_atribuicao(no->filho[i])) return 1;
+    }
+    return 0;
+}
+
 static void codegen_cout(ContextoCodegen *ctx, const NoAST *no) {
+    int separar = 0;
+    for (const NoAST *item = no->filho[0]; item != NULL; item = item->proximo) {
+        if (tem_chamada_ou_atribuicao(item)) {
+            separar = 1;
+            break;
+        }
+    }
+
+    if (separar) {
+        for (const NoAST *item = no->filho[0]; item != NULL; item = item->proximo) {
+            emitir_indent(ctx);
+            if (item->tipo == NO_ENDL) {
+                fprintf(ctx->out, "printf(\"\\n\");\n");
+                continue;
+            }
+            const char *formato = formato_io(item->tipo_dado);
+            fprintf(ctx->out, "printf(\"%s", formato ? formato : "%d");
+            const NoAST *expr = item;
+            while (item->proximo && item->proximo->tipo == NO_ENDL) {
+                fprintf(ctx->out, "\\n");
+                item = item->proximo;
+            }
+            fprintf(ctx->out, "\", ");
+            codegen_expressao(ctx, expr);
+            fprintf(ctx->out, ");\n");
+        }
+        return;
+    }
+
     emitir_indent(ctx);
     fprintf(ctx->out, "printf(\"");
     for (const NoAST *item = no->filho[0]; item != NULL; item = item->proximo) {
@@ -277,6 +317,25 @@ static void codegen_cout(ContextoCodegen *ctx, const NoAST *no) {
 }
 
 static void codegen_cin(ContextoCodegen *ctx, const NoAST *no) {
+    int separar = 0;
+    for (const NoAST *alvo = no->filho[0]; alvo != NULL; alvo = alvo->proximo) {
+        if (alvo->tipo == NO_INDICE) {
+            separar = 1;
+            break;
+        }
+    }
+
+    if (separar) {
+        for (const NoAST *alvo = no->filho[0]; alvo != NULL; alvo = alvo->proximo) {
+            const char *formato = formato_io(alvo->tipo_dado);
+            emitir_indent(ctx);
+            fprintf(ctx->out, "scanf(\"%s\", ", formato ? formato : "%d");
+            emitir_endereco(ctx, alvo);
+            fprintf(ctx->out, ");\n");
+        }
+        return;
+    }
+
     emitir_indent(ctx);
     fprintf(ctx->out, "scanf(\"");
     for (const NoAST *alvo = no->filho[0]; alvo != NULL; alvo = alvo->proximo) {

@@ -1,0 +1,8 @@
+#include <stdio.h>
+
+void ler(void) {
+    int n;
+    int v[10];
+    scanf("%d", &n);
+    scanf("%d", &v[n]);
+}
