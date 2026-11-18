@@ -78,6 +78,9 @@ Todos associam da esquerda para a direita, exceto os unários, o ternário e as 
 `++` e `--` valem em duas posições: como comando isolado (`i++;`) e no passo do `for`. Nas duas,
 viram `i = i + 1`. Dentro de uma expressão maior (`b = a++ * 2;`) são erro.
 
+Comparações `==` e `!=` entre `string` são traduzidas para `strcmp(a, b) == 0` e `strcmp(a, b) != 0`
+(com `#include <string.h>` incluído no C gerado quando houver comparação de strings).
+
 ## Arrays
 
 Uma dimensão, declaração e acesso por índice.

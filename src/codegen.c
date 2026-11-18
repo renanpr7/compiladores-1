@@ -58,6 +58,14 @@ static void codegen_comando(ContextoCodegen *ctx, const NoAST *no);
 static void codegen_bloco(ContextoCodegen *ctx, const NoAST *no);
 static void codegen_corpo(ContextoCodegen *ctx, const NoAST *no);
 
+static int eh_comparacao_string(const NoAST *no) {
+    return no && no->tipo == NO_OP_BINARIO &&
+           (no->operador == OP_IGUAL || no->operador == OP_DIFERENTE) &&
+           no->filho[0] && no->filho[1] &&
+           no->filho[0]->tipo_dado == TIPO_STRING &&
+           no->filho[1]->tipo_dado == TIPO_STRING;
+}
+
 /* Uma referencia ja e um ponteiro: passa o nome, sem tomar o endereco de novo. */
 static void emitir_endereco(ContextoCodegen *ctx, const NoAST *no) {
     if (no->tipo == NO_ID && no->eh_referencia) {
@@ -120,6 +128,14 @@ static void codegen_expressao(ContextoCodegen *ctx, const NoAST *no) {
         break;
 
     case NO_OP_BINARIO:
+        if (eh_comparacao_string(no)) {
+            fprintf(ctx->out, "(strcmp(");
+            codegen_expressao(ctx, no->filho[0]);
+            fprintf(ctx->out, ", ");
+            codegen_expressao(ctx, no->filho[1]);
+            fprintf(ctx->out, ") %s 0)", op_simbolo(no->operador));
+            break;
+        }
         fprintf(ctx->out, "(");
         codegen_expressao(ctx, no->filho[0]);
         fprintf(ctx->out, " %s ", op_simbolo(no->operador));
@@ -493,6 +509,19 @@ static void codegen_comando(ContextoCodegen *ctx, const NoAST *no) {
     }
 }
 
+static int usa_comparacao_string(const NoAST *no) {
+    if (!no) return 0;
+    if (eh_comparacao_string(no)) return 1;
+    /* NO_PARAMETRO fica de fora: o valor padrao nao sai no C. Ele e copiado
+     * para cada chamada que omite o argumento, e essa copia ja e visitada. */
+    if (no->tipo != NO_PARAMETRO) {
+        for (int i = 0; i < AST_MAX_FILHOS; ++i) {
+            if (usa_comparacao_string(no->filho[i])) return 1;
+        }
+    }
+    return usa_comparacao_string(no->proximo);
+}
+
 int gerar_codigo(const NoAST *raiz, FILE *saida) {
     if (!raiz || !saida) return 1;
 
@@ -501,7 +530,11 @@ int gerar_codigo(const NoAST *raiz, FILE *saida) {
     ctx.nivel_indent = 0;
 
     if (raiz->tipo == NO_PROGRAMA) {
-        fprintf(ctx.out, "#include <stdio.h>\n\n");
+        fprintf(ctx.out, "#include <stdio.h>\n");
+        if (usa_comparacao_string(raiz)) {
+            fprintf(ctx.out, "#include <string.h>\n");
+        }
+        fprintf(ctx.out, "\n");
         for (const NoAST *item = raiz->filho[0]; item != NULL; item = item->proximo) {
             if (item->tipo == NO_DECLARACAO) {
                 codegen_declaracao(&ctx, item);
