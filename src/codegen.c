@@ -78,7 +78,12 @@ static void codegen_expressao(ContextoCodegen *ctx, const NoAST *no) {
 
     case NO_FLOAT: {
         char buf[64];
-        snprintf(buf, sizeof(buf), "%g", no->valor_float);
+        for (int p = 6; p <= 9; ++p) {
+            snprintf(buf, sizeof(buf), "%.*g", p, no->valor_float);
+            if (strtof(buf, NULL) == no->valor_float || p == 9) {
+                break;
+            }
+        }
         if (!strchr(buf, '.') && !strchr(buf, 'e') && !strchr(buf, 'E')) {
             strcat(buf, ".0");
         }
