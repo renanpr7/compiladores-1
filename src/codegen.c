@@ -157,9 +157,11 @@ static void codegen_expressao(ContextoCodegen *ctx, const NoAST *no) {
         break;
 
     case NO_ATRIBUICAO:
+        if (no->eh_parenthesized) fprintf(ctx->out, "(");
         codegen_expressao(ctx, no->filho[0]);
         fprintf(ctx->out, " %s ", op_simbolo(no->operador));
         codegen_expressao(ctx, no->filho[1]);
+        if (no->eh_parenthesized) fprintf(ctx->out, ")");
         break;
 
     case NO_INC_DEC:
