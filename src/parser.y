@@ -31,6 +31,23 @@ static int eh_alvo(const NoAST *no) {
     return no && !no->eh_parenthesized && (no->tipo == NO_ID || no->tipo == NO_INDICE);
 }
 
+/* Em C++ o << tem precedencia maior que comparacao, logico, ternario e
+ * atribuicao: cout << a && b imprime so o a. Sem parenteses, o item mudaria
+ * de sentido na traducao para printf. */
+static int precisa_parenteses_no_cout(const NoAST *no) {
+    if (!no || no->eh_parenthesized) return 0;
+    if (no->tipo == NO_ATRIBUICAO || no->tipo == NO_TERNARIO) return 1;
+    if (no->tipo != NO_OP_BINARIO) return 0;
+    switch (no->operador) {
+    case OP_IGUAL: case OP_DIFERENTE: case OP_MENOR: case OP_MAIOR:
+    case OP_MENOR_IGUAL: case OP_MAIOR_IGUAL: case OP_E: case OP_OU:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+static void erro_sintaxe_em(int linha, int coluna, const char *mensagem);
 static void erro_atribuicao_invalida(int linha, int coluna);
 
 %}
@@ -233,7 +250,8 @@ lista_cout:
 
 alvo_cout:
     ENDL { $$ = criarNoEndl(@1.first_line, @1.first_column); }
-  | expressao { $$ = $1; }
+  | expressao
+      { if (precisa_parenteses_no_cout($1)) { int linha = $1->linha, coluna = $1->coluna; liberarAST($1); $$ = NULL; erro_sintaxe_em(linha, coluna, "item de cout com comparacao, &&, ||, ?: ou atribuicao precisa de parenteses"); YYERROR; } $$ = $1; }
 ;
 
 cmd_cin:
@@ -388,12 +406,16 @@ lista_argumentos:
 
 %%
 
-static void erro_atribuicao_invalida(int linha, int coluna) {
+static void erro_sintaxe_em(int linha, int coluna, const char *mensagem) {
     YYLTYPE anterior = yylloc;
     yylloc.first_line = yylloc.last_line = linha;
     yylloc.first_column = yylloc.last_column = coluna;
-    yyerror("syntax error");
+    yyerror(mensagem);
     yylloc = anterior;
+}
+
+static void erro_atribuicao_invalida(int linha, int coluna) {
+    erro_sintaxe_em(linha, coluna, "syntax error");
 }
 
 void yyerror(const char *s) {

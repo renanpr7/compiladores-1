@@ -158,6 +158,10 @@ Uma cadeia de `<<` vira um único `printf`. O `endl` acrescenta `\n` à string d
 O especificador (`%d`, `%f`, `%s`) depende do tipo da variável, então a tradução de E/S só é
 possível depois da tabela de símbolos.
 
+Um item de `cout` com comparação, `&&`, `||`, `? :` ou atribuição precisa de parênteses:
+`cout << (a && b);`. Em C++, o `<<` tem precedência maior que esses operadores, e `cout << a && b`
+imprime só o `a`. Sem os parênteses, é erro de sintaxe.
+
 `cin` lê `int`, `float` e `bool`. Como `string` só guarda literais, ler uma `string` é erro
 semântico. Para `bool`, a entrada deve ser `0` ou `1`: o valor lido não é normalizado.
 
