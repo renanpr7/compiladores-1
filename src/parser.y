@@ -234,6 +234,7 @@ comando:
   | CONTINUE SEMI { $$ = criarNoContinue(@1.first_line, @1.first_column); }
   | cmd_inc_dec { $$ = $1; }
   | expressao SEMI { $$ = $1; }
+  | SEMI { $$ = NULL; }
   | erro_oo { $$ = $1; }
   | erro_fora_escopo { $$ = $1; }
   | error SEMI { $$ = NULL; }
