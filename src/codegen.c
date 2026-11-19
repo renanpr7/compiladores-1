@@ -58,6 +58,14 @@ static void codegen_comando(ContextoCodegen *ctx, const NoAST *no);
 static void codegen_bloco(ContextoCodegen *ctx, const NoAST *no);
 static void codegen_corpo(ContextoCodegen *ctx, const NoAST *no);
 
+static int eh_comparacao_string(const NoAST *no) {
+    return no && no->tipo == NO_OP_BINARIO &&
+           (no->operador == OP_IGUAL || no->operador == OP_DIFERENTE) &&
+           no->filho[0] && no->filho[1] &&
+           no->filho[0]->tipo_dado == TIPO_STRING &&
+           no->filho[1]->tipo_dado == TIPO_STRING;
+}
+
 /* Uma referencia ja e um ponteiro: passa o nome, sem tomar o endereco de novo. */
 static void emitir_endereco(ContextoCodegen *ctx, const NoAST *no) {
     if (no->tipo == NO_ID && no->eh_referencia) {
@@ -78,7 +86,12 @@ static void codegen_expressao(ContextoCodegen *ctx, const NoAST *no) {
 
     case NO_FLOAT: {
         char buf[64];
-        snprintf(buf, sizeof(buf), "%g", no->valor_float);
+        for (int p = 6; p <= 9; ++p) {
+            snprintf(buf, sizeof(buf), "%.*g", p, no->valor_float);
+            if (strtof(buf, NULL) == no->valor_float || p == 9) {
+                break;
+            }
+        }
         if (!strchr(buf, '.') && !strchr(buf, 'e') && !strchr(buf, 'E')) {
             strcat(buf, ".0");
         }
@@ -115,6 +128,14 @@ static void codegen_expressao(ContextoCodegen *ctx, const NoAST *no) {
         break;
 
     case NO_OP_BINARIO:
+        if (eh_comparacao_string(no)) {
+            fprintf(ctx->out, "(strcmp(");
+            codegen_expressao(ctx, no->filho[0]);
+            fprintf(ctx->out, ", ");
+            codegen_expressao(ctx, no->filho[1]);
+            fprintf(ctx->out, ") %s 0)", op_simbolo(no->operador));
+            break;
+        }
         fprintf(ctx->out, "(");
         codegen_expressao(ctx, no->filho[0]);
         fprintf(ctx->out, " %s ", op_simbolo(no->operador));
@@ -157,9 +178,11 @@ static void codegen_expressao(ContextoCodegen *ctx, const NoAST *no) {
         break;
 
     case NO_ATRIBUICAO:
+        if (no->eh_parenthesized) fprintf(ctx->out, "(");
         codegen_expressao(ctx, no->filho[0]);
         fprintf(ctx->out, " %s ", op_simbolo(no->operador));
         codegen_expressao(ctx, no->filho[1]);
+        if (no->eh_parenthesized) fprintf(ctx->out, ")");
         break;
 
     case NO_INC_DEC:
@@ -176,13 +199,14 @@ static void codegen_declaracao_inline(ContextoCodegen *ctx, const NoAST *no) {
     /* Em C o '*' vale so para o nome ao lado: "char* a, b" faz de b um char.
      * Por isso string emite "char" uma vez e o '*' antes de cada nome. */
     int eh_string = no->tipo_dado == TIPO_STRING;
-    if (no->eh_const) {
+    if (no->eh_const && !eh_string) {
         fprintf(ctx->out, "const ");
     }
     fprintf(ctx->out, "%s ", eh_string ? "char" : tipo_para_c(no->tipo_dado));
 
     for (const NoAST *decl = no->filho[0]; decl != NULL; decl = decl->proximo) {
-        fprintf(ctx->out, "%s%s", eh_string ? "*" : "", decl->texto ? decl->texto : "");
+        const char *prefixo = eh_string ? (no->eh_const ? "*const " : "*") : "";
+        fprintf(ctx->out, "%s%s", prefixo, decl->texto ? decl->texto : "");
         if (decl->filho[1]) {
             fprintf(ctx->out, "[");
             codegen_expressao(ctx, decl->filho[1]);
@@ -248,7 +272,47 @@ static const char *formato_io(TipoDado tipo) {
     }
 }
 
+static int tem_chamada_ou_atribuicao(const NoAST *no) {
+    if (!no) return 0;
+    if (no->tipo == NO_CHAMADA || no->tipo == NO_ATRIBUICAO || no->tipo == NO_INC_DEC) {
+        return 1;
+    }
+    for (int i = 0; i < AST_MAX_FILHOS; ++i) {
+        if (tem_chamada_ou_atribuicao(no->filho[i])) return 1;
+    }
+    return 0;
+}
+
 static void codegen_cout(ContextoCodegen *ctx, const NoAST *no) {
+    int separar = 0;
+    for (const NoAST *item = no->filho[0]; item != NULL; item = item->proximo) {
+        if (tem_chamada_ou_atribuicao(item)) {
+            separar = 1;
+            break;
+        }
+    }
+
+    if (separar) {
+        for (const NoAST *item = no->filho[0]; item != NULL; item = item->proximo) {
+            emitir_indent(ctx);
+            if (item->tipo == NO_ENDL) {
+                fprintf(ctx->out, "printf(\"\\n\");\n");
+                continue;
+            }
+            const char *formato = formato_io(item->tipo_dado);
+            fprintf(ctx->out, "printf(\"%s", formato ? formato : "%d");
+            const NoAST *expr = item;
+            while (item->proximo && item->proximo->tipo == NO_ENDL) {
+                fprintf(ctx->out, "\\n");
+                item = item->proximo;
+            }
+            fprintf(ctx->out, "\", ");
+            codegen_expressao(ctx, expr);
+            fprintf(ctx->out, ");\n");
+        }
+        return;
+    }
+
     emitir_indent(ctx);
     fprintf(ctx->out, "printf(\"");
     for (const NoAST *item = no->filho[0]; item != NULL; item = item->proximo) {
@@ -270,6 +334,25 @@ static void codegen_cout(ContextoCodegen *ctx, const NoAST *no) {
 }
 
 static void codegen_cin(ContextoCodegen *ctx, const NoAST *no) {
+    int separar = 0;
+    for (const NoAST *alvo = no->filho[0]; alvo != NULL; alvo = alvo->proximo) {
+        if (alvo->tipo == NO_INDICE) {
+            separar = 1;
+            break;
+        }
+    }
+
+    if (separar) {
+        for (const NoAST *alvo = no->filho[0]; alvo != NULL; alvo = alvo->proximo) {
+            const char *formato = formato_io(alvo->tipo_dado);
+            emitir_indent(ctx);
+            fprintf(ctx->out, "scanf(\"%s\", ", formato ? formato : "%d");
+            emitir_endereco(ctx, alvo);
+            fprintf(ctx->out, ");\n");
+        }
+        return;
+    }
+
     emitir_indent(ctx);
     fprintf(ctx->out, "scanf(\"");
     for (const NoAST *alvo = no->filho[0]; alvo != NULL; alvo = alvo->proximo) {
@@ -426,6 +509,19 @@ static void codegen_comando(ContextoCodegen *ctx, const NoAST *no) {
     }
 }
 
+static int usa_comparacao_string(const NoAST *no) {
+    if (!no) return 0;
+    if (eh_comparacao_string(no)) return 1;
+    /* NO_PARAMETRO fica de fora: o valor padrao nao sai no C. Ele e copiado
+     * para cada chamada que omite o argumento, e essa copia ja e visitada. */
+    if (no->tipo != NO_PARAMETRO) {
+        for (int i = 0; i < AST_MAX_FILHOS; ++i) {
+            if (usa_comparacao_string(no->filho[i])) return 1;
+        }
+    }
+    return usa_comparacao_string(no->proximo);
+}
+
 int gerar_codigo(const NoAST *raiz, FILE *saida) {
     if (!raiz || !saida) return 1;
 
@@ -434,7 +530,11 @@ int gerar_codigo(const NoAST *raiz, FILE *saida) {
     ctx.nivel_indent = 0;
 
     if (raiz->tipo == NO_PROGRAMA) {
-        fprintf(ctx.out, "#include <stdio.h>\n\n");
+        fprintf(ctx.out, "#include <stdio.h>\n");
+        if (usa_comparacao_string(raiz)) {
+            fprintf(ctx.out, "#include <string.h>\n");
+        }
+        fprintf(ctx.out, "\n");
         for (const NoAST *item = raiz->filho[0]; item != NULL; item = item->proximo) {
             if (item->tipo == NO_DECLARACAO) {
                 codegen_declaracao(&ctx, item);
