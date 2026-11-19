@@ -31,6 +31,23 @@ static int eh_alvo(const NoAST *no) {
     return no && !no->eh_parenthesized && (no->tipo == NO_ID || no->tipo == NO_INDICE);
 }
 
+/* Em C++ o << tem precedencia maior que comparacao, logico, ternario e
+ * atribuicao: cout << a && b imprime so o a. Sem parenteses, o item mudaria
+ * de sentido na traducao para printf. */
+static int precisa_parenteses_no_cout(const NoAST *no) {
+    if (!no || no->eh_parenthesized) return 0;
+    if (no->tipo == NO_ATRIBUICAO || no->tipo == NO_TERNARIO) return 1;
+    if (no->tipo != NO_OP_BINARIO) return 0;
+    switch (no->operador) {
+    case OP_IGUAL: case OP_DIFERENTE: case OP_MENOR: case OP_MAIOR:
+    case OP_MENOR_IGUAL: case OP_MAIOR_IGUAL: case OP_E: case OP_OU:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+static void erro_sintaxe_em(int linha, int coluna, const char *mensagem);
 static void erro_atribuicao_invalida(int linha, int coluna);
 
 %}
@@ -73,9 +90,9 @@ static void erro_atribuicao_invalida(int linha, int coluna);
 %type <no> decl_param_sem_default decl_param_default bloco comandos comando
 %type <no> cmd_cout lista_cout alvo_cout cmd_cin lista_cin alvo_cin
 %type <no> cmd_if cmd_while cmd_do_while cmd_for for_init for_cond for_passo
-%type <no> cmd_inc_dec expressao primario argumentos lista_argumentos
+%type <no> cmd_inc_dec inc_dec expressao primario argumentos lista_argumentos
 %type <tipo> tipo_variavel
-%type <no> erro_oo erro_fora_escopo
+%type <no> erro_oo erro_oo_comando erro_oo_expressao erro_fora_escopo
 
 %destructor { free($$); } <identifier> <string_value>
 /* A raiz aceita tambem passa pelo descarte da pilha Bison; ela fica para o
@@ -217,7 +234,8 @@ comando:
   | CONTINUE SEMI { $$ = criarNoContinue(@1.first_line, @1.first_column); }
   | cmd_inc_dec { $$ = $1; }
   | expressao SEMI { $$ = $1; }
-  | erro_oo { $$ = $1; }
+  | SEMI { $$ = NULL; }
+  | erro_oo_comando { $$ = $1; }
   | erro_fora_escopo { $$ = $1; }
   | error SEMI { $$ = NULL; }
 ;
@@ -233,7 +251,8 @@ lista_cout:
 
 alvo_cout:
     ENDL { $$ = criarNoEndl(@1.first_line, @1.first_column); }
-  | expressao { $$ = $1; }
+  | expressao
+      { if (precisa_parenteses_no_cout($1)) { int linha = $1->linha, coluna = $1->coluna; liberarAST($1); $$ = NULL; erro_sintaxe_em(linha, coluna, "item de cout com comparacao, &&, ||, ?: ou atribuicao precisa de parenteses"); YYERROR; } $$ = $1; }
 ;
 
 cmd_cin:
@@ -287,18 +306,39 @@ for_cond:
 for_passo:
     %empty { $$ = NULL; }
   | expressao { $$ = $1; }
-  | primario INC { $$ = criarNoIncDec(OP_INC, $1, @2.first_line, @2.first_column); }
-  | primario DEC { $$ = criarNoIncDec(OP_DEC, $1, @2.first_line, @2.first_column); }
+  | inc_dec { $$ = $1; }
 ;
 
 cmd_inc_dec:
-    primario INC SEMI { $$ = criarNoIncDec(OP_INC, $1, @2.first_line, @2.first_column); }
-  | primario DEC SEMI { $$ = criarNoIncDec(OP_DEC, $1, @2.first_line, @2.first_column); }
+    inc_dec SEMI { $$ = $1; }
 ;
 
+/* A checagem do alvo fica fora de cmd_inc_dec para rodar antes do ';': se o
+ * erro disparasse com o ';' ja lido, a recuperacao descartaria o comando
+ * seguinte inteiro. */
+inc_dec:
+    primario INC
+      { if (!eh_alvo($1)) { liberarAST($1); $$ = NULL; erro_atribuicao_invalida(@2.first_line, @2.first_column); YYERROR; } $$ = criarNoIncDec(OP_INC, $1, @2.first_line, @2.first_column); }
+  | primario DEC
+      { if (!eh_alvo($1)) { liberarAST($1); $$ = NULL; erro_atribuicao_invalida(@2.first_line, @2.first_column); YYERROR; } $$ = criarNoIncDec(OP_DEC, $1, @2.first_line, @2.first_column); }
+;
+
+/* new, this e nullptr aparecem no meio de expressao (x = new int;), entao
+ * entram por primario. O comando usa so erro_oo_comando: com erro_oo inteiro,
+ * new no inicio do comando poderia virar os dois e daria conflito. */
 erro_oo:
+    erro_oo_comando { $$ = $1; }
+  | erro_oo_expressao { $$ = $1; }
+;
+
+erro_oo_expressao:
+    NEW { erro_oo("new", @1.first_line, @1.first_column); $$ = NULL; }
+  | THIS { erro_oo("this", @1.first_line, @1.first_column); $$ = NULL; }
+  | NULLPTR { erro_oo("nullptr", @1.first_line, @1.first_column); $$ = NULL; }
+;
+
+erro_oo_comando:
     CLASS { erro_oo("class", @1.first_line, @1.first_column); $$ = NULL; }
-  | NEW { erro_oo("new", @1.first_line, @1.first_column); $$ = NULL; }
   | DELETE { erro_oo("delete", @1.first_line, @1.first_column); $$ = NULL; }
   | TEMPLATE { erro_oo("template", @1.first_line, @1.first_column); $$ = NULL; }
   | VIRTUAL { erro_oo("virtual", @1.first_line, @1.first_column); $$ = NULL; }
@@ -308,8 +348,6 @@ erro_oo:
   | PROTECTED { erro_oo("protected", @1.first_line, @1.first_column); $$ = NULL; }
   | NAMESPACE { erro_oo("namespace", @1.first_line, @1.first_column); $$ = NULL; }
   | USING { erro_oo("using", @1.first_line, @1.first_column); $$ = NULL; }
-  | THIS { erro_oo("this", @1.first_line, @1.first_column); $$ = NULL; }
-  | NULLPTR { erro_oo("nullptr", @1.first_line, @1.first_column); $$ = NULL; }
   | FRIEND { erro_oo("friend", @1.first_line, @1.first_column); $$ = NULL; }
   | OPERATOR { erro_oo("operator", @1.first_line, @1.first_column); $$ = NULL; }
 ;
@@ -349,8 +387,8 @@ expressao:
   | expressao MOD expressao %prec MOD { $$ = criarNoOp(OP_MOD, $1, $3, @2.first_line, @2.first_column); }
   | MINUS expressao %prec UMINUS { $$ = criarNoOpUnario(OP_NEG, $2, @1.first_line, @1.first_column); }
   | NOT expressao %prec NOT { $$ = criarNoOpUnario(OP_NAO, $2, @1.first_line, @1.first_column); }
-  | INC expressao %prec NOT { liberarAST($2); $$ = NULL; yyerror("incremento/decremento nao permitido dentro de expressao"); YYERROR; }
-  | DEC expressao %prec NOT { liberarAST($2); $$ = NULL; yyerror("incremento/decremento nao permitido dentro de expressao"); YYERROR; }
+  | INC expressao %prec NOT { liberarAST($2); $$ = NULL; yyerror("incremento/decremento so na forma i++ ou i--, como comando"); YYERROR; }
+  | DEC expressao %prec NOT { liberarAST($2); $$ = NULL; yyerror("incremento/decremento so na forma i++ ou i--, como comando"); YYERROR; }
   | primario { $$ = $1; }
 ;
 
@@ -366,6 +404,7 @@ primario:
   | IDENT LPAREN argumentos RPAREN
       { $$ = criarNoChamada($1, $3, @1.first_line, @1.first_column); free($1); }
   | LPAREN expressao RPAREN { $$ = $2; if ($$) $$->eh_parenthesized = 1; }
+  | erro_oo_expressao { $$ = $1; }
 ;
 
 argumentos:
@@ -380,12 +419,16 @@ lista_argumentos:
 
 %%
 
-static void erro_atribuicao_invalida(int linha, int coluna) {
+static void erro_sintaxe_em(int linha, int coluna, const char *mensagem) {
     YYLTYPE anterior = yylloc;
     yylloc.first_line = yylloc.last_line = linha;
     yylloc.first_column = yylloc.last_column = coluna;
-    yyerror("syntax error");
+    yyerror(mensagem);
     yylloc = anterior;
+}
+
+static void erro_atribuicao_invalida(int linha, int coluna) {
+    erro_sintaxe_em(linha, coluna, "syntax error");
 }
 
 void yyerror(const char *s) {
