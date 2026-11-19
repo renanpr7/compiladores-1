@@ -73,7 +73,7 @@ static void erro_atribuicao_invalida(int linha, int coluna);
 %type <no> decl_param_sem_default decl_param_default bloco comandos comando
 %type <no> cmd_cout lista_cout alvo_cout cmd_cin lista_cin alvo_cin
 %type <no> cmd_if cmd_while cmd_do_while cmd_for for_init for_cond for_passo
-%type <no> cmd_inc_dec expressao primario argumentos lista_argumentos
+%type <no> cmd_inc_dec inc_dec expressao primario argumentos lista_argumentos
 %type <tipo> tipo_variavel
 %type <no> erro_oo erro_fora_escopo
 
@@ -287,13 +287,21 @@ for_cond:
 for_passo:
     %empty { $$ = NULL; }
   | expressao { $$ = $1; }
-  | primario INC { $$ = criarNoIncDec(OP_INC, $1, @2.first_line, @2.first_column); }
-  | primario DEC { $$ = criarNoIncDec(OP_DEC, $1, @2.first_line, @2.first_column); }
+  | inc_dec { $$ = $1; }
 ;
 
 cmd_inc_dec:
-    primario INC SEMI { $$ = criarNoIncDec(OP_INC, $1, @2.first_line, @2.first_column); }
-  | primario DEC SEMI { $$ = criarNoIncDec(OP_DEC, $1, @2.first_line, @2.first_column); }
+    inc_dec SEMI { $$ = $1; }
+;
+
+/* A checagem do alvo fica fora de cmd_inc_dec para rodar antes do ';': se o
+ * erro disparasse com o ';' ja lido, a recuperacao descartaria o comando
+ * seguinte inteiro. */
+inc_dec:
+    primario INC
+      { if (!eh_alvo($1)) { liberarAST($1); $$ = NULL; erro_atribuicao_invalida(@2.first_line, @2.first_column); YYERROR; } $$ = criarNoIncDec(OP_INC, $1, @2.first_line, @2.first_column); }
+  | primario DEC
+      { if (!eh_alvo($1)) { liberarAST($1); $$ = NULL; erro_atribuicao_invalida(@2.first_line, @2.first_column); YYERROR; } $$ = criarNoIncDec(OP_DEC, $1, @2.first_line, @2.first_column); }
 ;
 
 erro_oo:

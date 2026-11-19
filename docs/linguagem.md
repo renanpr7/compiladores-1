@@ -78,6 +78,10 @@ Todos associam da esquerda para a direita, exceto os unários, o ternário e as 
 `++` e `--` valem em duas posições: como comando isolado (`i++;`) e no passo do `for`. Nas duas,
 viram `i = i + 1`. Dentro de uma expressão maior (`b = a++ * 2;`) são erro.
 
+O alvo de `++`, `--` e das atribuições precisa ser uma variável ou um elemento de array, escrito sem
+parênteses. `5++`, `f()++`, `(a + b)++` e `1 = x` são erro de sintaxe, e `(x)++` e `(x) = 5`
+também.
+
 ## Arrays
 
 Uma dimensão, declaração e acesso por índice.
