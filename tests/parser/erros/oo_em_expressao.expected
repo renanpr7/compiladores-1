@@ -1,0 +1,4 @@
+Erro de compilacao: construcao OO nao suportada 'nullptr' na linha 4, coluna 13
+Erro de compilacao: construcao OO nao suportada 'this' na linha 5, coluna 11
+Erro de compilacao: construcao OO nao suportada 'new' na linha 6, coluna 9
+Erro de sintaxe na linha 6, coluna 13: syntax error
