@@ -376,8 +376,8 @@ expressao:
   | expressao MOD expressao %prec MOD { $$ = criarNoOp(OP_MOD, $1, $3, @2.first_line, @2.first_column); }
   | MINUS expressao %prec UMINUS { $$ = criarNoOpUnario(OP_NEG, $2, @1.first_line, @1.first_column); }
   | NOT expressao %prec NOT { $$ = criarNoOpUnario(OP_NAO, $2, @1.first_line, @1.first_column); }
-  | INC expressao %prec NOT { liberarAST($2); $$ = NULL; yyerror("incremento/decremento nao permitido dentro de expressao"); YYERROR; }
-  | DEC expressao %prec NOT { liberarAST($2); $$ = NULL; yyerror("incremento/decremento nao permitido dentro de expressao"); YYERROR; }
+  | INC expressao %prec NOT { liberarAST($2); $$ = NULL; yyerror("incremento/decremento so na forma i++ ou i--, como comando"); YYERROR; }
+  | DEC expressao %prec NOT { liberarAST($2); $$ = NULL; yyerror("incremento/decremento so na forma i++ ou i--, como comando"); YYERROR; }
   | primario { $$ = $1; }
 ;
 
