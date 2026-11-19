@@ -73,11 +73,9 @@ Precedência, da maior para a menor: unários `!` e `-` → `*` `/` `%` → `+` 
 
 Todos associam da esquerda para a direita, exceto os unários, o ternário e as atribuições.
 
-`a += b` é reescrito como `a = a + b`.
-
-`++` e `--` valem em duas posições: como comando isolado (`i++;`) e no passo do `for`. Nas duas,
-viram `i = i + 1`. Dentro de uma expressão maior (`b = a++ * 2;`) são erro. Só a forma posfixa é
-aceita: `++i` e `--i` são erro, inclusive como comando e no passo do `for`.
+`++` e `--` valem em duas posições: como comando isolado (`i++;`) e no passo do `for`. Dentro de
+uma expressão maior (`b = a++ * 2;`) são erro. Só a forma posfixa é aceita: `++i` e `--i` são
+erro, inclusive como comando e no passo do `for`.
 
 O alvo de `++`, `--` e das atribuições precisa ser uma variável ou um elemento de array, escrito sem
 parênteses. `5++`, `f()++`, `(a + b)++` e `1 = x` são erro de sintaxe, e `(x)++` e `(x) = 5`
@@ -113,7 +111,7 @@ int   maior(int a, int b)       →   int   maior_ii(int a, int b)
 float maior(float a, float b)   →   float maior_ff(float a, float b)
 
 maior(1, 2)                     →   maior_ii(1, 2)
-maior(1.0, 2.0)                 →   maior_ff(1.0, 2.0)
+maior(x, y)   // x, y float     →   maior_ff(x, y)
 ```
 
 Saber qual versão chamar depende do tipo dos argumentos, então a escolha é da análise semântica.
@@ -123,8 +121,8 @@ Saber qual versão chamar depende do tipo dos argumentos, então a escolha é da
 C não tem referências. Viram ponteiros, e cada uso é dereferenciado:
 
 ```cpp
-void dobra(int& x) {       →   void dobra(int* x) {
-    x = x * 2;             →       *x = (*x) * 2;
+void dobra(int& x) {       →   void dobra(int *x) {
+    x = x * 2;             →       (*x) = ((*x) * 2);
 }                          →   }
 
 int a = 5;                 →   int a = 5;
@@ -157,7 +155,7 @@ cadeia de `>>` vira um único `scanf`, exceto quando algum alvo é elemento de a
 |-----|---|
 | `cout << x;` (`int`) | `printf("%d", x);` |
 | `cout << x;` (`float`) | `printf("%f", x);` |
-| `cout << "texto";` | `printf("texto");` |
+| `cout << "texto";` | `printf("%s", "texto");` |
 | `cout << x << y;` | `printf("%d%d", x, y);` |
 | `cout << x << endl;` | `printf("%d\n", x);` |
 | `cin >> x;` (`int`) | `scanf("%d", &x);` |
@@ -194,11 +192,39 @@ using namespace std;        std::cout << x << std::endl;
 cout << x << endl;
 ```
 
-Se o programa usa `cout` ou `cin`, a saída recebe `#include <stdio.h>` no topo.
+A saída sempre começa com `#include <stdio.h>`.
 
 ## Comentários
 
 `//` até o fim da linha e `/* */` multilinha. Descartados pelo lexer.
+
+## Limitações
+
+O g++ aceita estas construções, mas aqui elas são recusadas com exit 1:
+
+- **Conversão de tipo na chamada.** O argumento precisa ter exatamente o tipo do parâmetro: com
+  `float metade(float x)`, a chamada `metade(3)` é erro semântico (`nenhum candidato compativel`).
+- **Protótipo.** `int f(int x);` é erro de sintaxe. A função precisa estar definida antes da
+  primeira chamada.
+- **`const` em parâmetro e em retorno.** `void f(const int x)`, `void f(const string& s)` e
+  `const int f()` são erro de sintaxe.
+- **`bool` em conta.** `bool` não entra em `+` `-` `*` `/` `%`, no `-` unário nem nas atribuições
+  compostas: `b + 1`, `-b`, `b += 1` e `x += b` são erro semântico (`tipos incompativeis`). O
+  resultado de comparação e de `!` também é `bool`, então `(a < b) + 1` dá o mesmo erro.
+- **Formato do literal float.** Precisa de dígitos dos dois lados do ponto, sem sufixo nem
+  expoente: `2.5f`, `1e3`, `.5` e `5.` são recusados.
+
+Estas são aceitas, mas o resultado difere do g++:
+
+- **Literal float é `float`.** Em C++ ele é `double`. O valor é guardado com precisão de `float`
+  (32 bits), e o constant folding também calcula em `float`: `cout << 16777217.0;` vira
+  `printf("%f", 16777216.0);` e `cout << 100000.0 / 3.0;` vira `printf("%f", 33333.332);`. Na
+  sobrecarga, `maior(1.0, 2.0)` chama `maior_ff`; no g++ a chamada é ambígua.
+- **Nomes que o C gerado já usa.** O compilador não os recusa, e o C pode não compilar: `printf` ou
+  `scanf` como variável num escopo que usa `cout` ou `cin`; função ou variável global com nome do
+  `<stdio.h>`, como `remove`; `strcmp` quando o programa compara `string`; palavra reservada só do
+  C, como `restrict`; e nome no formato das sobrecargas renomeadas, como `f_i` ao lado de uma `f`
+  sobrecarregada.
 
 ## Fora do escopo
 
@@ -239,15 +265,22 @@ int main() {
 ```c
 #include <stdio.h>
 
-int   maior_ii(int a, int b)      { return a > b ? a : b; }
-float maior_ff(float a, float b)  { return a > b ? a : b; }
+int maior_ii(int a, int b) {
+    return ((a > b) ? a : b);
+}
 
-void dobra(int* x) { *x = (*x) * 2; }
+float maior_ff(float a, float b) {
+    return ((a > b) ? a : b);
+}
 
-int main() {
+void dobra(int *x) {
+    (*x) = ((*x) * 2);
+}
+
+int main(void) {
     int a = 3;
     dobra(&a);
-    for (int i = 0; i < 2; i = i + 1) {
+    for (int i = 0; (i < 2); i++) {
         printf("%d\n", maior_ii(a, i));
     }
     return 0;
@@ -262,4 +295,5 @@ class Pessoa { int idade; };
 
 ```
 Erro de compilacao: construcao OO nao suportada 'class' na linha 1, coluna 1
+Erro de sintaxe na linha 1, coluna 7: syntax error
 ```
