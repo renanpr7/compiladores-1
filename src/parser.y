@@ -92,7 +92,7 @@ static void erro_atribuicao_invalida(int linha, int coluna);
 %type <no> cmd_if cmd_while cmd_do_while cmd_for for_init for_cond for_passo
 %type <no> cmd_inc_dec inc_dec expressao primario argumentos lista_argumentos
 %type <tipo> tipo_variavel
-%type <no> erro_oo erro_fora_escopo
+%type <no> erro_oo erro_oo_comando erro_oo_expressao erro_fora_escopo
 
 %destructor { free($$); } <identifier> <string_value>
 /* A raiz aceita tambem passa pelo descarte da pilha Bison; ela fica para o
@@ -235,7 +235,7 @@ comando:
   | cmd_inc_dec { $$ = $1; }
   | expressao SEMI { $$ = $1; }
   | SEMI { $$ = NULL; }
-  | erro_oo { $$ = $1; }
+  | erro_oo_comando { $$ = $1; }
   | erro_fora_escopo { $$ = $1; }
   | error SEMI { $$ = NULL; }
 ;
@@ -323,9 +323,22 @@ inc_dec:
       { if (!eh_alvo($1)) { liberarAST($1); $$ = NULL; erro_atribuicao_invalida(@2.first_line, @2.first_column); YYERROR; } $$ = criarNoIncDec(OP_DEC, $1, @2.first_line, @2.first_column); }
 ;
 
+/* new, this e nullptr aparecem no meio de expressao (x = new int;), entao
+ * entram por primario. O comando usa so erro_oo_comando: com erro_oo inteiro,
+ * new no inicio do comando poderia virar os dois e daria conflito. */
 erro_oo:
+    erro_oo_comando { $$ = $1; }
+  | erro_oo_expressao { $$ = $1; }
+;
+
+erro_oo_expressao:
+    NEW { erro_oo("new", @1.first_line, @1.first_column); $$ = NULL; }
+  | THIS { erro_oo("this", @1.first_line, @1.first_column); $$ = NULL; }
+  | NULLPTR { erro_oo("nullptr", @1.first_line, @1.first_column); $$ = NULL; }
+;
+
+erro_oo_comando:
     CLASS { erro_oo("class", @1.first_line, @1.first_column); $$ = NULL; }
-  | NEW { erro_oo("new", @1.first_line, @1.first_column); $$ = NULL; }
   | DELETE { erro_oo("delete", @1.first_line, @1.first_column); $$ = NULL; }
   | TEMPLATE { erro_oo("template", @1.first_line, @1.first_column); $$ = NULL; }
   | VIRTUAL { erro_oo("virtual", @1.first_line, @1.first_column); $$ = NULL; }
@@ -335,8 +348,6 @@ erro_oo:
   | PROTECTED { erro_oo("protected", @1.first_line, @1.first_column); $$ = NULL; }
   | NAMESPACE { erro_oo("namespace", @1.first_line, @1.first_column); $$ = NULL; }
   | USING { erro_oo("using", @1.first_line, @1.first_column); $$ = NULL; }
-  | THIS { erro_oo("this", @1.first_line, @1.first_column); $$ = NULL; }
-  | NULLPTR { erro_oo("nullptr", @1.first_line, @1.first_column); $$ = NULL; }
   | FRIEND { erro_oo("friend", @1.first_line, @1.first_column); $$ = NULL; }
   | OPERATOR { erro_oo("operator", @1.first_line, @1.first_column); $$ = NULL; }
 ;
@@ -393,6 +404,7 @@ primario:
   | IDENT LPAREN argumentos RPAREN
       { $$ = criarNoChamada($1, $3, @1.first_line, @1.first_column); free($1); }
   | LPAREN expressao RPAREN { $$ = $2; if ($$) $$->eh_parenthesized = 1; }
+  | erro_oo_expressao { $$ = $1; }
 ;
 
 argumentos:
