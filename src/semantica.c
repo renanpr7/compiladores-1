@@ -81,6 +81,8 @@ static NoAST *normalizar_bool(TipoDado destino, NoAST *valor) {
     if (destino != TIPO_BOOL || !valor || !eh_numerico(valor->tipo_dado)) return valor;
     NoAST *proximo = valor->proximo;
     valor->proximo = NULL;
+    /* Sem parenteses o != 0 pegaria so o lado direito: x = 5 != 0. */
+    if (valor->tipo == NO_ATRIBUICAO) valor->eh_parenthesized = 1;
     NoAST *zero = criarNoNum(0, valor->linha, valor->coluna);
     zero->tipo_dado = TIPO_INT;
     NoAST *comparacao = criarNoOp(OP_DIFERENTE, valor, zero, valor->linha, valor->coluna);
