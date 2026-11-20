@@ -1,0 +1,6 @@
+1:1 INT "int"
+1:5 IDENT "x"
+1:7 ASSIGN "="
+Erro lexico: numero malformado '010' na linha 1, coluna 9
+1:12 SEMI ";"
+2:1 EOF
