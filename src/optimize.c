@@ -1,4 +1,5 @@
 #include <limits.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "optimize.h"
@@ -29,6 +30,12 @@ static int erros_otimizacao = 0;
 static void reportar_divisao_por_zero(int linha, int coluna) {
     erros_otimizacao++;
     emit_diagnostic("Erro semantico", linha, coluna, "divisao por zero");
+}
+
+/* Passar do maior float da infinito, e o C nao tem literal para isso. */
+static void reportar_float_fora_do_intervalo(int linha, int coluna) {
+    erros_otimizacao++;
+    emit_diagnostic("Erro semantico", linha, coluna, "valor float fora do intervalo");
 }
 
 /* O tamanho so vira numero depois do folding (int v[2 - 5]), entao a
@@ -90,6 +97,8 @@ static void otimizar_op_binario(NoAST *no) {
         if (esq->tipo == NO_FLOAT || dir->tipo == NO_FLOAT) {
             float ve = valor_como_float(esq);
             float vd = valor_como_float(dir);
+            /* Literal infinito ja foi reportado; nao repete no resultado. */
+            if (isinf(ve) || isinf(vd)) return;
             if (no->operador == OP_DIV && vd == 0.0f) {
                 reportar_divisao_por_zero(no->linha, no->coluna);
                 return;
@@ -101,6 +110,10 @@ static void otimizar_op_binario(NoAST *no) {
             case OP_MULT: res = ve * vd; break;
             case OP_DIV:  res = ve / vd; break;
             default:      break;
+            }
+            if (isinf(res)) {
+                reportar_float_fora_do_intervalo(no->linha, no->coluna);
+                return;
             }
             mutar_para_float(no, res);
         } else {
@@ -199,7 +212,7 @@ static void otimizar_op_unario(NoAST *no) {
         if (op->tipo == NO_NUM) {
             if (op->valor_int == INT_MIN) return;
             mutar_para_num(no, -op->valor_int);
-        } else if (op->tipo == NO_FLOAT) {
+        } else if (op->tipo == NO_FLOAT && !isinf(op->valor_float)) {
             mutar_para_float(no, -op->valor_float);
         }
         break;
@@ -229,6 +242,8 @@ static void otimizar_no(NoAST *no) {
         otimizar_op_unario(no);
     } else if (no->tipo == NO_DECLARADOR) {
         validar_tamanho_array(no);
+    } else if (no->tipo == NO_FLOAT && isinf(no->valor_float)) {
+        reportar_float_fora_do_intervalo(no->linha, no->coluna);
     }
 }
 

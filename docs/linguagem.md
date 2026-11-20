@@ -18,6 +18,8 @@ valor padrão.
 | `string s = "Joao";` | `char *s = "Joao";` | só literais, sem concatenação; sem valor, começa em `""` |
 | `const int N = 10;` | `const int N = 10;` | atribuir a um `const` é erro semântico |
 
+Um `float` constante que passa do maior valor do tipo, seja literal ou resultado de conta, é erro semântico `valor float fora do intervalo`.
+
 ## Estruturas de controle
 
 `if` / `else`, `while`, `do while` e `for`. Todas existem em C e saem sem alteração.
