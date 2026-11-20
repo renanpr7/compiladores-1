@@ -138,6 +138,11 @@ std::                           { }
     report_lexical_error(detail, token_line, token_column);
 }
 [0-9]+\.[0-9]+                 { yylval.float_value = (float) atof(yytext); return NUM_FLOAT; }
+0[0-9]+                         {
+    char detail[256];
+    snprintf(detail, sizeof detail, "numero malformado '%s'", yytext);
+    report_lexical_error(detail, token_line, token_column);
+}
 [0-9]+                          { yylval.int_value = atoi(yytext); return NUM_INT; }
 
 "int"                           { return INT; }

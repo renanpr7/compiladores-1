@@ -215,6 +215,9 @@ O g++ aceita estas construções, mas aqui elas são recusadas com exit 1:
   resultado de comparação e de `!` também é `bool`, então `(a < b) + 1` dá o mesmo erro.
 - **Formato do literal float.** Precisa de dígitos dos dois lados do ponto, sem sufixo nem
   expoente: `2.5f`, `1e3`, `.5` e `5.` são recusados.
+- **Inteiro com zero na frente.** No C++, `010` é octal e vale 8. Aqui não há octal: um inteiro
+  com mais de um dígito que começa com `0` é erro léxico (`numero malformado '010'`). `0`, `0.5`
+  e `00.5` continuam aceitos.
 
 Estas são aceitas, mas o resultado difere do g++:
 
