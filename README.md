@@ -16,7 +16,8 @@ gcc programa.c -o programa && ./programa
 
 O subconjunto inclui de propósito sobrecarga de funções, referências e parâmetros com valor padrão.
 Nenhuma tem equivalente direto em C, então o compilador traduz em vez de copiar. O que é aceito e
-como cada construção é traduzida está em [docs/linguagem.md](docs/linguagem.md).
+como cada construção é traduzida está em [docs/linguagem.md](docs/linguagem.md); instruções detalhadas
+de compilação, opções de linha de comando e diagnóstico estão no [manual de uso](docs/manual.md).
 
 > **Estado atual:** pipeline completo de ponta a ponta. O lexer reconhece todo o subconjunto com posição de linha e
 > coluna, o parser valida a gramática e monta a AST, o analisador semântico valida escopo, tipos, sobrecarga (com *name mangling*), parâmetros padrão e referências, o otimizador realiza *constant folding* na AST, `./compilador -i` emite o código intermediário de três endereços (TAC) e o modo padrão gera código C99 válido. São **164
@@ -59,8 +60,8 @@ casos dentro de uma pasta `erros/` devem terminar com 1, os demais com 0.
 | Pasta | O que verifica | Como |
 |-------|----------------|------|
 | `lexer/` | os tokens reconhecidos | `./compilador -t` |
-| `parser/aceita/` | programas válidos são aceitos | `./compilador` |
-| `parser/erros/` | programas inválidos são recusados | `./compilador` |
+| `parser/aceita/` | programas válidos são aceitos | `./compilador -a` |
+| `parser/erros/` | programas inválidos são recusados | `./compilador -a` |
 | `ast/` | a árvore montada e simplificada | `./compilador -a` |
 | `semantica/` | escopo, tipos, declaração antes do uso | `./compilador` |
 | `tac/` | o código intermediário de três endereços | `./compilador -i` |
@@ -95,6 +96,7 @@ tests/
   cli/                      testes da interface de linha de comando
 docs/
   linguagem.md              o C++ que aceitamos e o C que emitimos
+  manual.md                 manual de uso: compilação, flags da CLI, exemplos e diagnósticos
 Makefile
 ```
 
